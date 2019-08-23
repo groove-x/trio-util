@@ -11,7 +11,7 @@ with open(base_dir / 'src' / pkg_name / '_version.py') as f:
 
 setup(
     name=pkg_name,
-    description='Trio utility library',
+    description='Utility library for the Trio async/await framework',
     long_description='''
 An assortment of utilities for the Trio async/await framework, including:
 

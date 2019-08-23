@@ -32,6 +32,7 @@ pip install trio-util
 What attributes make a good utility function or class?
 
   * of general use, intuitive, hard to use incorrectly
+  * makes code more readable and reduces cognitive load
   * already vetted for a length of time within a project, ideally used
     by multiple developers
 

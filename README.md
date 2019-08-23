@@ -27,6 +27,18 @@ See the [online documentation](https://trio-util.readthedocs.io/en/latest/) for 
 pip install trio-util
 ```
 
+## Contributing
+
+What attributes make a good utility function or class?
+
+  * of general use, intuitive, hard to use incorrectly
+  * already vetted for a length of time within a project, ideally used
+    by multiple developers
+
+If you have something that would be a good fit for trio-util, please
+open an issue on GitHub.  We'll want to review the design, naming, and
+documentation.
+
 ## Disclaimer
 
 This software is not supported by GROOVE X, Inc., and GROOVE X

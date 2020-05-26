@@ -1,7 +1,11 @@
 from collections import defaultdict
 
 import trio
-from trio.hazmat import ParkingLot as WaitQueue
+
+try:
+    from trio.lowlevel import ParkingLot as WaitQueue
+except ImportError:
+    from trio.hazmat import ParkingLot as WaitQueue
 
 
 def _ANY_TRANSITION(value, old_value):

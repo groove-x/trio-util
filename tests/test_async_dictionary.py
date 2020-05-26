@@ -22,7 +22,7 @@ async def test_async_dictionary(nursery, autojump_clock):
     d = AsyncDictionary(foo=10)
     assert len(d) == 1
     assert 'foo' in d
-    assert [k for k in d] == ['foo']
+    assert list(d) == ['foo']
     assert await d.get_wait('foo') == 10
     assert not d.is_waiting('foo')
     del d['foo']

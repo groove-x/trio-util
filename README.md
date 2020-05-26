@@ -5,7 +5,7 @@
 
 # trio-util
 
-An assortment of utilities for the Trio async/await framework,
+An assortment of utilities for the Python Trio async/await framework,
 including:
 
   * `wait_any`, `wait_all` - avoid nursery blocks for simple cases

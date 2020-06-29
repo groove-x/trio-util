@@ -24,7 +24,8 @@ class AsyncValue:
     """
     Value wrapper offering the ability to wait for a value or transition.
 
-    Synopsis:
+    Synopsis::
+
         >>> a = AsyncValue(0)  # NOTE: can wrap any type (enum, tuple, ...)
         >>> ...
         >>> a.value = 5   # access underlying value

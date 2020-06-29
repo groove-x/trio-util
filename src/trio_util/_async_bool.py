@@ -20,7 +20,8 @@ _BOOL_OR_NONE_TYPES = _BOOL_TYPES + (type(None), )
 class AsyncBool:
     """Boolean wrapper offering the ability to wait for a value or transition.
 
-    Synopsis:
+    Synopsis::
+
         >>> a = AsyncBool()
         >>> ...
         >>> a.value = True   # access underlying value

@@ -51,7 +51,7 @@ def defer_to_cancelled(*args: Type[Exception]):
     unhandled exception will occur.  Often what is desired in this case is
     for the Cancelled exception alone to propagate to the cancel scope.
 
-    Equivalent to multi_error_defer_to(trio.Cancelled, *args).
+    Equivalent to ``multi_error_defer_to(trio.Cancelled, *args)``.
 
     :param args:  One or more exception types which will defer to
         trio.Cancelled.  By default, all exception types will be filtered.
@@ -81,9 +81,12 @@ def multi_error_defer_to(*privileged_types: Type[BaseException],
     In the scope of this context manager, a raised MultiError will be coalesced
     into a single exception with the highest privilege if the following
     criteria is met:
+
         1. every exception in the MultiError is an instance of one of the given
            privileged types
+
     additionally, by default with strict=True:
+
         2. there is a single candidate at the highest privilege after grouping
            the exceptions by repr().  For example, this test fails if both
            ValueError('foo') and ValueError('bar') are the most privileged.
@@ -92,7 +95,8 @@ def multi_error_defer_to(*privileged_types: Type[BaseException],
     propagated.  Use propagate_multi_error=False to instead raise a
     RuntimeError in these cases.
 
-    Examples:
+    Examples::
+
         multi_error_defer_to(trio.Cancelled, MyException)
             MultiError([Cancelled(), MyException()]) -> Cancelled()
             MultiError([Cancelled(), MyException(),

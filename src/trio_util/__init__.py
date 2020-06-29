@@ -4,7 +4,7 @@ from ._async_dictionary import AsyncDictionary
 from ._async_itertools import azip, azip_longest
 from ._async_value import AsyncValue
 from ._awaitables import wait_all, wait_any
-from ._exceptions import defer_to_cancelled
+from ._exceptions import defer_to_cancelled, multi_error_defer_to
 from ._periodic import periodic
 from ._repeated_event import UnqueuedRepeatedEvent, MailboxRepeatedEvent
 from ._task_stats import TaskStats

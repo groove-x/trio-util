@@ -69,8 +69,12 @@ iterators
 .. autofunction:: azip
 .. autofunction:: azip_longest
 
+exceptions
+----------
+.. autofunction:: multi_error_defer_to
+.. autofunction:: defer_to_cancelled
+
 miscellaneous
 -------------
 .. autoclass:: TaskStats
     :show-inheritance:
-.. autofunction:: defer_to_cancelled

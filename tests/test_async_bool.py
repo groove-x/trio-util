@@ -1,4 +1,5 @@
 import pytest
+import trio
 from trio.testing import assert_checkpoints, wait_all_tasks_blocked
 
 from trio_util import AsyncBool
@@ -93,3 +94,32 @@ async def test_wait_transition_any(nursery):
     await wait_all_tasks_blocked()
     x.value = False
     await wait_all_tasks_blocked()
+
+
+async def test_wait_value_held_for(nursery, autojump_clock):
+    test1_done = trio.Event()
+    test2_done = trio.Event()
+
+    async def listener(event: AsyncBool):
+        assert not event.value  # condition already true
+        t0 = trio.current_time()
+        await event.wait_value(False, held_for=1)
+        assert trio.current_time() - t0 == 1
+        test1_done.set()
+
+        assert not event.value  # condition not yet true
+        t0 = trio.current_time()
+        await event.wait_value(True, held_for=1)
+        assert trio.current_time() - t0 == 1.5
+        test2_done.set()
+
+    x = AsyncBool()
+    nursery.start_soon(listener, x)
+    await test1_done.wait()
+
+    x.value = True
+    await trio.sleep(.25)
+    x.value = False
+    await trio.sleep(.25)
+    x.value = True
+    await test2_done.wait()

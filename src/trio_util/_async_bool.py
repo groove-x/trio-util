@@ -58,15 +58,28 @@ class AsyncBool:
             self._edge_events[x].unpark_all()
             self._edge_events[None].unpark_all()
 
-    async def wait_value(self, value):
-        """Wait until given value."""
+    async def wait_value(self, value, *, held_for=0):
+        """Wait until given value.
+
+        If held_for > 0, the value must match for that duration from the
+        time of the call.  "held" means that the value is continuously in the
+        requested state.
+        """
         if not isinstance(value, _BOOL_TYPES):
             raise TypeError
-        if value != self.value:
-            await self._level_events[value].park()
-        else:
-            await trio.sleep(0)
+        while True:
+            if value != self.value:
+                await self._level_events[value].park()
+            else:
+                await trio.sleep(0)
+            if held_for > 0:
+                with trio.move_on_after(held_for):
+                    if value == self.value:
+                        await self._level_events[not value].park()
+                    continue
+            break
 
+    # TODO: held_for
     async def wait_transition(self, value=None):
         """Wait until transition to given value (default None which means any)."""
         if not isinstance(value, _BOOL_OR_NONE_TYPES):

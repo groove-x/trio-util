@@ -72,24 +72,37 @@ class AsyncValue:
                     result.event.unpark_all()
                     del self._edge_results[f]
 
-    async def wait_value(self, predicate):
+    async def wait_value(self, predicate, *, held_for=0):
         """
         Wait until given predicate f(value) is True.
 
         The predicate is tested immediately and, if false, whenever
         the `value` property changes.
 
+        If held_for > 0, the predicate must match for that duration from the
+        time of the call.  "held" means that the predicate is continuously true.
+
         returns value which satisfied the predicate
+        (when held_for > 0, it's the most recent value)
         """
-        if not predicate(self._value):
-            result = self._level_results[predicate]
-            await result.event.park()
-            value = result.value
-        else:
-            value = self._value
-            await trio.sleep(0)
+        while True:
+            if not predicate(self._value):
+                result = self._level_results[predicate]
+                await result.event.park()
+                value = result.value
+            else:
+                value = self._value
+                await trio.sleep(0)
+            if held_for > 0:
+                with trio.move_on_after(held_for):
+                    if predicate(self._value):
+                        result = self._level_results[lambda v: not predicate(v)]
+                        await result.event.park()
+                    continue
+            break
         return value
 
+    # TODO: held_for
     async def wait_transition(self, predicate=None):
         """
         Wait until given predicate f(value, old_value) is True.

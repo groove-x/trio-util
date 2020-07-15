@@ -4,10 +4,47 @@ import trio
 from trio_util import defer_to_cancelled, multi_error_defer_to
 
 
-async def test_defer_to_cancelled_simple_exception():
-    with pytest.raises(ValueError):
-        with defer_to_cancelled(ValueError):
-            raise ValueError
+def _cancelled():
+    return trio.Cancelled._create()
+
+
+class MyExceptionBase(Exception):
+    pass
+
+
+class MyException(MyExceptionBase):
+    pass
+
+
+@pytest.mark.parametrize("context, to_raise, expected_exception", [
+    # simple exception
+    (defer_to_cancelled(ValueError),
+     ValueError,
+     ValueError),
+    # MultiError gets deferred
+    (defer_to_cancelled(ValueError),
+     trio.MultiError([_cancelled(), ValueError()]),
+     trio.Cancelled),
+    # multiple exception types
+    (defer_to_cancelled(ValueError, KeyError),
+     trio.MultiError([_cancelled(), ValueError(), KeyError()]),
+     trio.Cancelled),
+    # nested MultiError
+    (defer_to_cancelled(ValueError),
+     trio.MultiError([
+         ValueError(),
+         trio.MultiError([_cancelled(), _cancelled()])
+     ]),
+     trio.Cancelled),
+    # non-matching exception
+    (defer_to_cancelled(ValueError),
+     trio.MultiError([_cancelled(), KeyError()]),
+     trio.MultiError),
+])
+async def test_defer_to_cancelled(context, to_raise, expected_exception):
+    with pytest.raises(expected_exception):
+        with context:
+            raise to_raise
 
 
 async def test_defer_to_cancelled_simple_cancel():
@@ -17,49 +54,64 @@ async def test_defer_to_cancelled_simple_cancel():
             await trio.sleep(0)
 
 
-async def test_defer_to_cancelled_deferred():
-    with pytest.raises(trio.Cancelled):
-        with defer_to_cancelled(ValueError):
-            raise trio.MultiError([trio.Cancelled._create(), ValueError()])
-
-
-async def test_defer_to_cancelled_deferred_multiple():
-    with pytest.raises(trio.Cancelled):
-        with defer_to_cancelled(ValueError, KeyError):
-            raise trio.MultiError([trio.Cancelled._create(), ValueError(),
-                                   KeyError()])
-
-
-async def test_defer_to_cancelled_deferred_nested_multi_error():
-    with pytest.raises(trio.Cancelled):
-        with defer_to_cancelled(ValueError):
-            raise trio.MultiError([
-                ValueError(),
-                trio.MultiError([trio.Cancelled._create(), trio.Cancelled._create()])
-            ])
-
-
-async def test_defer_to_cancelled_not_deferred():
-    with pytest.raises(trio.MultiError):
-        with defer_to_cancelled(ValueError):
-            raise trio.MultiError([trio.Cancelled._create(), KeyError()])
-
-
 async def test_defer_to_cancelled_decorating_async():
     @defer_to_cancelled(ValueError)
     async def foo():
-        raise trio.MultiError([trio.Cancelled._create(), ValueError()])
+        raise trio.MultiError([_cancelled(), ValueError()])
 
     with pytest.raises(trio.Cancelled):
         await foo()
 
 
-# TODO: parameterize tests
-
-async def test_multi_error_defer_simple_exception():
-    with pytest.raises(ValueError):
-        with multi_error_defer_to(trio.Cancelled, ValueError):
-            raise ValueError
+@pytest.mark.parametrize("context, to_raise, expected_exception", [
+    # simple exception
+    (multi_error_defer_to(trio.Cancelled, ValueError),
+     ValueError,
+     ValueError),
+    # MultiError
+    (multi_error_defer_to(trio.Cancelled, ValueError),
+     trio.MultiError([_cancelled(), ValueError()]),
+     trio.Cancelled),
+    # nested MultiError
+    (multi_error_defer_to(trio.Cancelled, ValueError),
+     trio.MultiError([
+         ValueError(),
+         trio.MultiError([_cancelled(), _cancelled()])
+     ]),
+     trio.Cancelled),
+    # exception subclass
+    (multi_error_defer_to(MyExceptionBase, trio.Cancelled),
+     trio.MultiError([_cancelled(), MyException()]),
+     MyException),
+    # exception objects with same repr are grouped
+    (multi_error_defer_to(ValueError, trio.Cancelled),
+     trio.MultiError([ValueError(), ValueError(), _cancelled()]),
+     ValueError),
+    # exception objects with different repr are not grouped
+    (multi_error_defer_to(ValueError, trio.Cancelled),
+     trio.MultiError([ValueError('foo'), ValueError('bar'), _cancelled()]),
+     trio.MultiError),
+    # MultiError propagation disallowed
+    (multi_error_defer_to(ValueError, trio.Cancelled, propagate_multi_error=False),
+     trio.MultiError([ValueError('foo'), ValueError('bar'), _cancelled()]),
+     RuntimeError),
+    # grouping of exception instances with different repr allowed
+    (multi_error_defer_to(ValueError, trio.Cancelled, strict=False),
+     trio.MultiError([ValueError('foo'), ValueError('bar'), _cancelled()]),
+     ValueError),
+    # no matching exception
+    (multi_error_defer_to(trio.Cancelled, ValueError),
+     trio.MultiError([_cancelled(), KeyError()]),
+     trio.MultiError),
+    # no matching exception, propagation disallowed
+    (multi_error_defer_to(trio.Cancelled, ValueError, propagate_multi_error=False),
+     trio.MultiError([_cancelled(), KeyError()]),
+     RuntimeError),
+])
+async def test_multi_error_defer_to(context, to_raise, expected_exception):
+    with pytest.raises(expected_exception):
+        with context:
+            raise to_raise
 
 
 async def test_multi_error_defer_simple_cancel():
@@ -69,71 +121,10 @@ async def test_multi_error_defer_simple_cancel():
             await trio.sleep(0)
 
 
-async def test_multi_error_defer():
-    with pytest.raises(trio.Cancelled):
-        with multi_error_defer_to(trio.Cancelled, ValueError):
-            raise trio.MultiError([trio.Cancelled._create(), ValueError()])
-
-
-async def test_multi_error_defer_nested():
-    with pytest.raises(trio.Cancelled):
-        with multi_error_defer_to(trio.Cancelled, ValueError):
-            raise trio.MultiError([
-                ValueError(),
-                trio.MultiError([trio.Cancelled._create(), trio.Cancelled._create()])
-            ])
-
-
-async def test_multi_error_defer_derived():
-    class MyExceptionBase(Exception):
-        pass
-    class MyException(MyExceptionBase):
-        pass
-    with pytest.raises(MyException):
-        with multi_error_defer_to(MyExceptionBase, trio.Cancelled):
-            raise trio.MultiError([trio.Cancelled._create(), MyException()])
-
-
-async def test_multi_error_defer_deferred_same_repr_strict():
-    with pytest.raises(ValueError):
-        with multi_error_defer_to(ValueError, trio.Cancelled):
-            raise trio.MultiError([ValueError(), ValueError(), trio.Cancelled._create()])
-
-
-async def test_multi_error_defer_deferred_different_repr_strict():
-    with pytest.raises(trio.MultiError):
-        with multi_error_defer_to(ValueError, trio.Cancelled):
-            raise trio.MultiError([ValueError('foo'), ValueError('bar'), trio.Cancelled._create()])
-
-
-async def test_multi_error_defer_deferred_different_repr_strict_no_propagate():
-    with pytest.raises(RuntimeError):
-        with multi_error_defer_to(ValueError, trio.Cancelled, propagate_multi_error=False):
-            raise trio.MultiError([ValueError('foo'), ValueError('bar'), trio.Cancelled._create()])
-
-
-async def test_multi_error_defer_deferred_different_repr_no_strict():
-    with pytest.raises(ValueError):
-        with multi_error_defer_to(ValueError, trio.Cancelled, strict=False):
-            raise trio.MultiError([ValueError('foo'), ValueError('bar'), trio.Cancelled._create()])
-
-
-async def test_multi_error_defer_no_match():
-    with pytest.raises(trio.MultiError):
-        with multi_error_defer_to(trio.Cancelled, ValueError):
-            raise trio.MultiError([trio.Cancelled._create(), KeyError()])
-
-
-async def test_multi_error_defer_no_match_no_propagate():
-    with pytest.raises(RuntimeError):
-        with multi_error_defer_to(trio.Cancelled, ValueError, propagate_multi_error=False):
-            raise trio.MultiError([trio.Cancelled._create(), KeyError()])
-
-
 async def test_multi_error_defer_decorating_async():
     @multi_error_defer_to(trio.Cancelled, ValueError)
     async def foo():
-        raise trio.MultiError([trio.Cancelled._create(), ValueError()])
+        raise trio.MultiError([_cancelled(), ValueError()])
 
     with pytest.raises(trio.Cancelled):
         await foo()

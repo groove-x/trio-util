@@ -1,3 +1,7 @@
+from functools import partial
+from unittest.mock import Mock
+
+import pytest
 import trio
 from trio.testing import assert_checkpoints, wait_all_tasks_blocked
 
@@ -76,3 +80,27 @@ async def test_wait_value_held_for(nursery, autojump_clock):
     await trio.sleep(.25)
     x.value = 22
     await test2_done.wait()
+
+
+@pytest.mark.parametrize('wait_function, predicate_return', [
+    (AsyncValue.wait_value, False),
+    (partial(AsyncValue.wait_value, held_for=1), True),
+    (AsyncValue.wait_transition, False),
+])
+async def test_predicate_eval_scope(wait_function, predicate_return, nursery):
+    # predicate evaluations are not expected outside of wait_* method lifetime
+    x = AsyncValue(0)
+    predicate = Mock(return_value=predicate_return)
+    cancel_scope = trio.CancelScope()
+
+    @nursery.start_soon
+    async def _wait():
+        with cancel_scope:
+            await wait_function(x, predicate)
+
+    await wait_all_tasks_blocked()
+    predicate_call_count = predicate.call_count
+    cancel_scope.cancel()
+    await wait_all_tasks_blocked()
+    x.value = 10
+    assert predicate.call_count == predicate_call_count

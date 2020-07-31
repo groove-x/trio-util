@@ -13,11 +13,12 @@ def _ANY_TRANSITION(value, old_value):
 
 
 class _Result:
-    __slots__ = ['event', 'value']
+    __slots__ = ['event', 'value', 'refs']
 
     def __init__(self):
         self.event = WaitQueue()
         self.value = None
+        self.refs = 0
 
 
 class AsyncValue:
@@ -66,12 +67,22 @@ class AsyncValue:
                 if f(new):
                     result.value = new
                     result.event.unpark_all()
-                    del self._level_results[f]
             for f, result in list(self._edge_results.items()):
                 if f(new, old):
                     result.value = (new, old)
                     result.event.unpark_all()
-                    del self._edge_results[f]
+
+    @staticmethod
+    async def _wait_predicate(result_map, predicate):
+        result = result_map[predicate]
+        result.refs += 1
+        try:
+            await result.event.park()
+        finally:
+            result.refs -= 1
+            if not result.refs:
+                del result_map[predicate]
+        return result.value
 
     async def wait_value(self, predicate, *, held_for=0):
         """
@@ -88,17 +99,13 @@ class AsyncValue:
         """
         while True:
             if not predicate(self._value):
-                result = self._level_results[predicate]
-                await result.event.park()
-                value = result.value
+                value = await self._wait_predicate(self._level_results, predicate)
             else:
                 value = self._value
                 await trio.sleep(0)
             if held_for > 0:
                 with trio.move_on_after(held_for):
-                    if predicate(self._value):
-                        result = self._level_results[lambda v: not predicate(v)]
-                        await result.event.park()
+                    await self.wait_value(lambda v: not predicate(v))
                     continue
             break
         return value
@@ -113,6 +120,4 @@ class AsyncValue:
 
         returns (value, old_value) which satisfied the predicate
         """
-        result = self._edge_results[predicate or _ANY_TRANSITION]
-        await result.event.park()
-        return result.value
+        return await self._wait_predicate(self._edge_results, predicate or _ANY_TRANSITION)

@@ -28,9 +28,9 @@ or wait until both events are true::
 
 value wrappers
 --------------
-These value wrappers offer the ability to wait for a specific value or
-transition.  :class:`AsyncValue` can wrap any type, while :class:`AsyncBool`
-offers a simplified API for the common case of bool values.
+:class:`AsyncValue` can wrap any type, offering the ability to wait for a
+specific value or transition.  :class:`AsyncBool` is just an :class:`AsyncValue`
+that defaults to ``False``.
 
 .. autoclass:: AsyncValue
     :members:

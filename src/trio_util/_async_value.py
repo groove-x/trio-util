@@ -21,6 +21,36 @@ class _Result:
         self.refs = 0
 
 
+class _ValueWrapper:
+    """
+    If value_or_predicate is not callable, wrap it in a suitable callable, and
+    hash by the original value if possible.
+
+    This provides a consistent interface for awaitables, and allows listeners
+    of the same plain value to share a wait queue.
+    """
+
+    __slots__ = ['value']
+
+    def __new__(cls, value_or_predicate):
+        return value_or_predicate if callable(value_or_predicate) else super().__new__(cls)
+
+    def __init__(self, value):
+        self.value = value
+
+    def __hash__(self):
+        try:
+            return hash(self.value)
+        except TypeError:
+            return super().__hash__()
+
+    def __eq__(self, other):
+        return self.value.__eq__(other.value)
+
+    def __call__(self, x, *args):
+        return x == self.value
+
+
 class AsyncValue:
     """
     Value wrapper offering the ability to wait for a value or transition.
@@ -31,10 +61,16 @@ class AsyncValue:
         >>> ...
         >>> a.value = 5   # access underlying value
         >>> ...
-        >>> # wait for value predicate
+        >>> # wait for value match by equality
+        >>> await a.wait_value(7)
+        >>> ...
+        >>> # wait for value match by predicate
         >>> await a.wait_value(lambda v: v > 10)
         >>> ...
-        >>> # wait for transition predicate (default: any)
+        >>> # wait for transition by equality
+        >>> await a.wait_transition(14)
+        >>> ...
+        >>> # wait for transition by predicate (default: any transition)
         >>> await a.wait_transition(lambda v, old: v > 10 and old < 0)
 
     When using `wait_value()` and `wait_transition()`, note that the value may
@@ -46,12 +82,11 @@ class AsyncValue:
 
     def __init__(self, value):
         self._value = value
-        self._old = None  # NOTE: initial value is never exposed in API
         self._level_results = defaultdict(_Result)
         self._edge_results = defaultdict(_Result)
 
     def __repr__(self):
-        return f"AsyncValue(value={self.value})"
+        return f"{self.__class__.__name__}(value={self.value})"
 
     @property
     def value(self):
@@ -61,7 +96,7 @@ class AsyncValue:
     @value.setter
     def value(self, x):
         if self._value != x:
-            old = self._old = self._value
+            old = self._value
             new = self._value = x
             for f, result in list(self._level_results.items()):
                 if f(new):
@@ -84,12 +119,15 @@ class AsyncValue:
                 del result_map[predicate]
         return result.value
 
-    async def wait_value(self, predicate, *, held_for=0):
+    async def wait_value(self, value_or_predicate, *, held_for=0):
         """
         Wait until given predicate f(value) is True.
 
         The predicate is tested immediately and, if false, whenever
         the `value` property changes.
+
+        If a non-callable is provided, it's equivalent to a predicate matching
+        the given value.
 
         If held_for > 0, the predicate must match for that duration from the
         time of the call.  "held" means that the predicate is continuously true.
@@ -97,6 +135,7 @@ class AsyncValue:
         returns value which satisfied the predicate
         (when held_for > 0, it's the most recent value)
         """
+        predicate = _ValueWrapper(value_or_predicate)
         while True:
             if not predicate(self._value):
                 value = await self._wait_predicate(self._level_results, predicate)
@@ -111,13 +150,16 @@ class AsyncValue:
         return value
 
     # TODO: held_for
-    async def wait_transition(self, predicate=None):
+    async def wait_transition(self, value_or_predicate=_ANY_TRANSITION):
         """
         Wait until given predicate f(value, old_value) is True.
 
         The predicate is tested whenever the `value` property changes.
-        The default is `None`, which responds to any value change.
+        The default predicate responds to any value change.
+
+        If a non-callable is provided, it's equivalent to a predicate matching
+        the given value.
 
         returns (value, old_value) which satisfied the predicate
         """
-        return await self._wait_predicate(self._edge_results, predicate or _ANY_TRANSITION)
+        return await self._wait_predicate(self._edge_results, _ValueWrapper(value_or_predicate))

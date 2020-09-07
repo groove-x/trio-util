@@ -6,6 +6,7 @@ import trio
 from trio.testing import assert_checkpoints, wait_all_tasks_blocked
 
 from trio_util import AsyncValue
+from trio_util._async_value import _ValueWrapper
 
 
 async def test_value_event(nursery):
@@ -104,3 +105,65 @@ async def test_predicate_eval_scope(wait_function, predicate_return, nursery):
     await wait_all_tasks_blocked()
     x.value = 10
     assert predicate.call_count == predicate_call_count
+
+
+async def test_wait_value_by_value(nursery):
+    done = trio.Event()
+
+    async def listener(event: AsyncValue):
+        assert event.value == 10
+        assert await event.wait_value(10) == 10
+        assert await event.wait_value(12) == 12
+        done.set()
+
+    x = AsyncValue(10)
+    nursery.start_soon(listener, x)
+    await wait_all_tasks_blocked()
+    x.value = 12
+    await done.wait()
+
+
+async def test_wait_transition_by_value(nursery):
+    done = trio.Event()
+
+    async def listener(event: AsyncValue):
+        assert event.value == 10
+        assert await event.wait_transition(10) == (10, 9)
+        done.set()
+
+    x = AsyncValue(10)
+    nursery.start_soon(listener, x)
+    await wait_all_tasks_blocked()
+    assert not done.is_set()
+    x.value = 9
+    x.value = 10
+    await done.wait()
+
+
+def _always_false(val):
+    return False
+
+
+@pytest.mark.parametrize('initial_val, wait_val, expected_queue_key_types', [
+    # event already set to desired value, so no wait queue
+    ('foo', 'foo', []),
+    # listeners waiting for the same value, so wait queue is shared
+    ('foo', 'bar', [_ValueWrapper]),
+    (False, True, [_ValueWrapper]),
+    # unhashable value requires a wait queue per listener
+    (None, {}, [_ValueWrapper, _ValueWrapper]),
+    # (same) predicate will be keyed by the function object
+    (None, _always_false, [type(_always_false)]),
+])
+async def test_wait_queue(initial_val, wait_val, expected_queue_key_types, nursery):
+    # two tasks run wait_value() on the same value, check wait queue key type and number
+
+    async def listener(event: AsyncValue):
+        assert event.value == initial_val
+        await event.wait_value(wait_val)
+
+    x = AsyncValue(initial_val)
+    nursery.start_soon(listener, x)
+    nursery.start_soon(listener, x)
+    await wait_all_tasks_blocked()
+    assert [type(val) for val in x._level_results] == expected_queue_key_types

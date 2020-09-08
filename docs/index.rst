@@ -37,6 +37,12 @@ that defaults to ``False``.
 .. autoclass:: AsyncBool
     :members:
 
+Sometimes you want to wait on a condition involving multiple async values.
+This can be achieved without resorting to polling by employing the
+:func:`compose_values` context manager.
+
+.. autofunction:: compose_values
+
 collections
 -----------
 :class:`AsyncDictionary` has many uses, such as multiplexing a networking

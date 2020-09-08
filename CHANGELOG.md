@@ -7,6 +7,8 @@
    of `AsyncValue`.
 - `held_for` is a new option of `AsyncBool.wait_value()`,
   requiring a match for the specified duration.
+- `compose_values()` is a context manager that enables waiting on conditions
+  involving multiple async values
 - `multi_error_defer_to()` is a new context manager that allows deferring
   `trio.MultiError` exceptions to a single, privileged exception.
 

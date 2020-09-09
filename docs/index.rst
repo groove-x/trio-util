@@ -42,6 +42,7 @@ This can be achieved without resorting to polling by employing the
 :func:`compose_values` context manager.
 
 .. autofunction:: compose_values
+    :async-with: composed
 
 collections
 -----------
@@ -69,16 +70,22 @@ and automatically clearing the event after it's received.
 generators
 ----------
 .. autofunction:: periodic
+    :async-for: elapsed_time, delta_time
 
 iterators
 ---------
 .. autofunction:: azip
+    :async:
 .. autofunction:: azip_longest
+    :async:
 
 exceptions
 ----------
 .. autofunction:: multi_error_defer_to
+    :no-auto-options:
+    :with:
 .. autofunction:: defer_to_cancelled
+    :with:
 
 miscellaneous
 -------------

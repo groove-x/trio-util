@@ -26,7 +26,7 @@ disable=bad-whitespace,
 
 [TYPECHECK]
 contextmanager-decorators=contextlib.contextmanager,
-                          trio_util._exceptions.async_friendly_contextmanager
+                          trio_util._exceptions._async_friendly_contextmanager
 
 [REPORTS]
 score=no

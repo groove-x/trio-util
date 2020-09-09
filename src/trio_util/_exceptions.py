@@ -27,7 +27,7 @@ class _AsyncFriendlyGeneratorContextManager(_GeneratorContextManager):
         return inner
 
 
-def async_friendly_contextmanager(func):
+def _async_friendly_contextmanager(func):
     """
     Equivalent to @contextmanager, except the resulting (non-async) context
     manager works correctly as a decorator on async functions.
@@ -71,7 +71,7 @@ def defer_to_cancelled(*args: Type[Exception]):
     return multi_error_defer_to(trio.Cancelled, *args)
 
 
-@async_friendly_contextmanager
+@_async_friendly_contextmanager
 def multi_error_defer_to(*privileged_types: Type[BaseException],
                          propagate_multi_error=True,
                          strict=True):

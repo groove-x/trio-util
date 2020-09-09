@@ -25,8 +25,8 @@ six==1.15.0               # via packaging
 sniffio==1.1.0            # via trio
 snowballstemmer==2.0.0    # via sphinx
 sortedcontainers==2.2.2   # via trio
-sphinx-rtd-theme==0.4.3   # via -r requirements.in
-sphinx==2.1.2             # via -r requirements.in, sphinx-rtd-theme, sphinxcontrib-trio
+sphinx-rtd-theme==0.5.0   # via -r requirements.in
+sphinx==3.2.1             # via -r requirements.in, sphinx-rtd-theme, sphinxcontrib-trio
 sphinxcontrib-applehelp==1.0.2  # via sphinx
 sphinxcontrib-devhelp==1.0.2  # via sphinx
 sphinxcontrib-htmlhelp==1.0.3  # via sphinx

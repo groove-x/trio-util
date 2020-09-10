@@ -70,7 +70,7 @@ and automatically clearing the event after it's received.
 generators
 ----------
 .. autofunction:: periodic
-    :async-for: elapsed_time, delta_time
+    :async-for: elapsed, delta
 
 iterators
 ---------

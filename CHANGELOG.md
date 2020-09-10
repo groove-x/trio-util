@@ -5,7 +5,7 @@
 - `AsyncValue.wait_value() / wait_transition()` additionally accept a plain
   value to match by equality, and `AsyncBool` is now a subclass
   of `AsyncValue`.
-- `held_for` is a new option of `AsyncBool.wait_value()`,
+- `held_for` is a new option of `AsyncValue.wait_value()`,
   requiring a match for the specified duration.
 - `compose_values()` is a context manager that enables waiting on conditions
   involving multiple async values

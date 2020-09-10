@@ -9,7 +9,7 @@
   requiring a match for the specified duration.
 - `compose_values()` is a context manager that enables waiting on conditions
   involving multiple async values
-- `multi_error_defer_to()` is a new context manager that allows deferring
+- `multi_error_defer_to()` is a context manager that allows deferring
   `trio.MultiError` exceptions to a single, privileged exception.
 
 ## trio-util 0.1.1 (2020-06-04)

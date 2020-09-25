@@ -8,6 +8,7 @@ from ._exceptions import defer_to_cancelled, multi_error_defer_to
 from ._periodic import periodic
 from ._repeated_event import UnqueuedRepeatedEvent, MailboxRepeatedEvent
 from ._task_stats import TaskStats
+from ._trio_async_generator import trio_async_generator
 
 def _metadata_fix():
     # don't do this for Sphinx case because it breaks "bysource" member ordering

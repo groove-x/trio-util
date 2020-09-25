@@ -12,8 +12,10 @@ including:
   * `AsyncBool`, `AsyncValue` - value wrappers with the ability to wait for
     a specific value or transition
   * `AsyncDictionary` - dictionary with waitable get and pop
-  * `periodic` - a periodic loop which accounts for its own execution
+  * `periodic` - periodic loop which accounts for its own execution
     time
+  * `@trio_async_generator` - decorator which adapts a generator containing
+     Trio constructs for safe use
   * `azip`, `azip_longest` - async zip with parallel iteration
   * `UnqueuedRepeatedEvent`, `MailboxRepeatedEvent` - if you really, really
     want to reuse an event

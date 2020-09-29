@@ -71,6 +71,7 @@ generators
 ----------
 .. autofunction:: periodic
     :async-for: elapsed, delta
+.. autodecorator:: trio_async_generator
 
 iterators
 ---------

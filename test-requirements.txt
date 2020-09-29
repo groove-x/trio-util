@@ -5,11 +5,10 @@
 #    pip-compile --output-file=test-requirements.txt setup.py test-requirements.in
 #
 astroid==2.4.1            # via pylint
-async-generator==1.10     # via pytest-trio, trio
+async-generator==1.10     # via pytest-trio, trio, trio_util (setup.py)
 attrs==19.3.0             # via outcome, pytest, trio
 coverage==5.1             # via pytest-cov
 idna==2.9                 # via trio
-importlib-metadata==1.6.0  # via pluggy, pytest
 isort==4.3.21             # via pylint
 lazy-object-proxy==1.4.3  # via astroid
 mccabe==0.6.1             # via pylint
@@ -34,4 +33,3 @@ typed-ast==1.4.1          # via astroid, mypy
 typing-extensions==3.7.4.2  # via mypy
 wcwidth==0.1.9            # via pytest
 wrapt==1.12.1             # via astroid
-zipp==3.1.0               # via importlib-metadata

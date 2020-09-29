@@ -19,8 +19,10 @@ An assortment of utilities for the Trio async/await framework, including:
   * AsyncBool, AsyncValue - value wrappers with the ability to wait for
     a specific value or transition
   * AsyncDictionary - dictionary with waitable get and pop
-  * periodic - a periodic loop which accounts for its own execution
+  * periodic - periodic loop which accounts for its own execution
     time
+  * @trio_async_generator - decorator which adapts a generator containing
+     Trio constructs for safe use
   * azip, azip_longest - async zip with parallel iteration
   * UnqueuedRepeatedEvent, MailboxRepeatedEvent - if you really, really
     want to reuse an event
@@ -34,7 +36,10 @@ An assortment of utilities for the Trio async/await framework, including:
     license='MIT',
     packages=[pkg_name],
     package_dir={'': 'src'},
-    install_requires=['trio >= 0.11.0'],
+    install_requires=[
+        'async_generator',
+        'trio >= 0.11.0'
+    ],
     python_requires='>=3.7',
     classifiers=[
         'Development Status :: 3 - Alpha',

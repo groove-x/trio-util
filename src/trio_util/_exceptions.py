@@ -135,7 +135,7 @@ def multi_error_defer_to(*privileged_types: Type[BaseException],
                     # not in privileged list
                     if propagate_multi_error:
                         raise
-                    raise RuntimeError('Unhandled trio.MultiError')
+                    raise RuntimeError('Unhandled trio.MultiError') from e
                 errors_by_repr[repr(e)] = e
         # group the resulting errors by index in the privileged type list
         # priority_index -> exception_object
@@ -150,5 +150,5 @@ def multi_error_defer_to(*privileged_types: Type[BaseException],
             # multiple unique exception objects at the same priority
             if propagate_multi_error:
                 raise
-            raise RuntimeError('Unhandled trio.MultiError')
+            raise RuntimeError('Unhandled trio.MultiError') from e
         raise priority_errors[0]

@@ -119,6 +119,44 @@ jobs:
             . venv/bin/activate
             make type_check
 
+  "python-3.9":
+    docker:
+      - image: circleci/python:3.9-rc
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "test-requirements.txt" }}
+            - v1-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r test-requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "test-requirements.txt" }}
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            make test
+      - run:
+          name: run lint
+          command: |
+            . venv/bin/activate
+            make lint
+      - run:
+          name: run type check
+          command: |
+            . venv/bin/activate
+            make type_check
+
 workflows:
   version: 2
   build:
@@ -126,3 +164,4 @@ workflows:
       - "python-3.7"
       - "python-3.7_trio-0.12"
       - "python-3.8"
+      - "python-3.9"

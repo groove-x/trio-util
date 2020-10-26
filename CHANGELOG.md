@@ -5,6 +5,11 @@
 - `@trio_async_generator` is a decorator which adapts a generator containing
   Trio constructs for safe use.  (Normally, it's not allowed to yield from a
   nursery or cancel scope when implementing async generators.)
+### Removed
+- `AsyncDictionary` has been removed.  It didn't work well for the advertised
+  use case of multiplexing a network connection, and trying to address that
+  while keeping the regular dict interface (itself of unproven value) seemed to
+  result in an overly complex API.  See [discussion](https://github.com/groove-x/trio-util/issues/4).
 
 ## trio-util 0.2.0 (2020-09-09)
 ### Added

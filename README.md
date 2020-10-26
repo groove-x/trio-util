@@ -11,7 +11,6 @@ including:
   * `wait_any`, `wait_all` - avoid nursery blocks for simple cases
   * `AsyncBool`, `AsyncValue` - value wrappers with the ability to wait for
     a specific value or transition
-  * `AsyncDictionary` - dictionary with waitable get and pop
   * `periodic` - periodic loop which accounts for its own execution
     time
   * `@trio_async_generator` - decorator which adapts a generator containing

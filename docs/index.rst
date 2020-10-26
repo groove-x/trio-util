@@ -44,15 +44,6 @@ This can be achieved without resorting to polling by employing the
 .. autofunction:: compose_values
     :async-with: composed
 
-collections
------------
-:class:`AsyncDictionary` has many uses, such as multiplexing a networking
-connection among tasks.
-
-.. autoclass:: AsyncDictionary
-    :show-inheritance:
-    :members:
-
 repeated events
 ---------------
 :class:`trio.Event` does not offer a clear() method, so it can't be

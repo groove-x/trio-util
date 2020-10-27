@@ -11,19 +11,21 @@ RATE_MEASURE_PERIOD = .25
 class TaskStats(trio.abc.Instrument):
     """Trio scheduler Instrument which logs various task stats at termination.
 
-    Includes max task wait time, slowest task step, and highest task schedule
+    Includes max task wait time, slow task steps, and highest task schedule
     rate.
     """
-    def __init__(self, current_time=trio.current_time):
+    # TODO: auto slow task threshold (e.g. > 98th percentile)
+    def __init__(self, *, slow_task_threshold=.01, current_time=trio.current_time):
         super().__init__()
+        self.slow_task_threshold = slow_task_threshold
         self.current_time = current_time
-        self.scheduled_start = {}
+        self.scheduled_start = {}  # task: start_time
         self.max_wait = 0
         self.task_step_start = None
-        self.max_task_step = (None, 0)
-        self.schedule_counts = defaultdict(int)
+        self.slow_task_steps = defaultdict(list)  # name: dt_list
+        self.schedule_counts = defaultdict(int)  # name: count
         self.rate_start = 0
-        self.max_schedule_rate = (None, 0)
+        self.max_schedule_rate = (None, 0)  # (name, rate)
 
     def task_scheduled(self, task):
         t = self.current_time()
@@ -51,13 +53,19 @@ class TaskStats(trio.abc.Instrument):
         start = self.task_step_start
         if start:
             dt = self.current_time() - start
-            if dt > self.max_task_step[1]:
-                self.max_task_step = (task.name, dt)
+            if dt > self.slow_task_threshold:
+                self.slow_task_steps[task.name].append(dt)
             self.task_step_start = None
 
     def after_run(self):
         logger.info(f'max task wait time: {self.max_wait * 1000:.2f} ms')
-        max_task_name, max_task_time = self.max_task_step
-        logger.info(f'slowest task step: {max_task_time * 1000:.2f} ms by {max_task_name}')
+        if self.slow_task_steps:
+            text = [f'slow task step events (> {self.slow_task_threshold * 1000:.0f} ms):']
+            for name, dt_list in sorted(self.slow_task_steps.items(),
+                                        key=lambda item: max(item[1]), reverse=True):
+                dt_text = ', '.join(f'{dt * 1000:.0f}ms'
+                                    for dt in sorted(dt_list, reverse=True))
+                text.append(f'  {name}: {dt_text}')
+            logger.info('\n'.join(text))
         max_rate_name, max_rate = self.max_schedule_rate
         logger.info(f'max task schedule rate: {max_rate:.0f} Hz by {max_rate_name}')

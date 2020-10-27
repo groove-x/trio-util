@@ -5,6 +5,9 @@
 - `@trio_async_generator` is a decorator which adapts a generator containing
   Trio constructs for safe use.  (Normally, it's not allowed to yield from a
   nursery or cancel scope when implementing async generators.)
+### Changed
+- `TaskStats` now reports all slow task step events over a given threshold,
+  rather than the maximum observed task step.
 ### Removed
 - `AsyncDictionary` has been removed.  It didn't work well for the advertised
   use case of multiplexing a network connection, and trying to address that

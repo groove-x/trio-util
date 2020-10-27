@@ -1,6 +1,6 @@
 # Release history
 
-## trio-util (pending)
+## trio-util 0.3.0 (2020-10-27)
 ### Added
 - `@trio_async_generator` is a decorator which adapts a generator containing
   Trio constructs for safe use.  (Normally, it's not allowed to yield from a

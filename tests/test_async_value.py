@@ -224,3 +224,75 @@ async def test_compose_values_nested(nursery):
     async_text.value = 'bar'
     await wait_all_tasks_blocked()
     await done.wait()
+
+
+@pytest.mark.parametrize('consume_duration, publish_durations, expected_values', [
+    # fast consumer
+    [0.0, [.1] * 3, [(1, 0), (2, 1), (3, 2)]],
+    # consumer is a little slower (1s vs .9s), so middle transition lost
+    (1.0, [.9] * 3, [(1, 0), (3, 2)]),
+    # force lost transition due to multiple transitions before subscriber body is entered
+    (0.0, [.1, .1, None, .1], [(1, 0), (2, 1), (4, 3)]),
+])
+async def test_transitions(consume_duration, publish_durations, expected_values,
+                           nursery, autojump_clock):
+    x = AsyncValue(0)
+    done_event = trio.Event()
+
+    @nursery.start_soon
+    async def _consumer():
+        async for val, old in x.transitions():
+            assert (val, old) == expected_values.pop(0)
+            await trio.sleep(consume_duration)
+            if len(expected_values) == 0:
+                done_event.set()
+
+    await wait_all_tasks_blocked()
+    for duration in publish_durations:
+        x.value += 1
+        if duration is not None:
+            await trio.sleep(duration)
+    await done_event.wait()
+
+
+async def test_transitions_parallel_consumers(autojump_clock):
+
+    async def _consumer(agen, expected, done):
+        async for val, old in agen:
+            assert (val, old) == expected.pop(0)
+            if len(expected) == 0:
+                done.set()
+
+    x = AsyncValue(0)
+    done_events = []
+    unique_predicates = 0
+
+    async with trio.open_nursery() as nursery:
+        # listener A - all transitions
+        done_events.append(trio.Event())
+        nursery.start_soon(_consumer,
+                           x.transitions(),
+                           [(1, 0), (2, 1), (3, 2), (4, 3)],
+                           done_events[-1])
+        unique_predicates += 1
+
+        # listener B & C - selective transitions (identical)
+        for _ in range(2):
+            done_events.append(trio.Event())
+            nursery.start_soon(_consumer,
+                               x.transitions(2),
+                               [(2, 1)],
+                               done_events[-1])
+        unique_predicates += 1
+
+        await wait_all_tasks_blocked()
+        # emit values slowly, subscriber can keep up
+        for _ in range(4):
+            x.value += 1
+            await trio.sleep(.1)
+        for event in done_events:
+            await event.wait()
+        assert len(x._edge_results) == unique_predicates
+        nursery.cancel_scope.cancel()
+
+    assert not x._edge_results

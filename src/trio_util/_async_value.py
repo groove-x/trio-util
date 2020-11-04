@@ -78,8 +78,10 @@ class AsyncValue:
     When using `wait_value()` and `wait_transition()`, note that the value may
     have changed again before the caller receives control.
 
-    Performance note:  assignment to the `value` property has O(N) complexity,
-    where N is the number of active wait predicates.
+    Performance note:  assignment to the `value` property typically has O(N)
+    complexity, where N is the number of actively waiting tasks.  Shared
+    predicates are grouped when possible, reducing N to the number of active
+    predicates.
     """
 
     def __init__(self, value):
@@ -152,6 +154,7 @@ class AsyncValue:
         return value
 
     # TODO: held_for
+    # TODO: implement wait_transition() using transitions()
     async def wait_transition(self, value_or_predicate=_ANY_TRANSITION):
         """
         Wait until given predicate f(value, old_value) is True.
@@ -165,6 +168,38 @@ class AsyncValue:
         returns (value, old_value) which satisfied the predicate
         """
         return await self._wait_predicate(self._edge_results, _ValueWrapper(value_or_predicate))
+
+    async def transitions(self, value_or_predicate=_ANY_TRANSITION):
+        """
+        Yield (value, old_value) for transitions matching the predicate
+
+        Transitions that happen during the body of the loop are discarded.
+
+        The iteration::
+
+            >>> async for value, old_value in async_value.transitions(...)
+            >>>     ...
+
+        is equivalent to::
+
+            >>> while True:
+            >>>     value, old_value = await async_value.wait_transition(...)
+            >>>     ...
+        """
+
+        # Note this is not simply `while True: await wait_transition(...)`,
+        # in order to maintain a ref on the predicate throughout the loop.
+        predicate = _ValueWrapper(value_or_predicate)
+        result = self._edge_results[predicate]
+        result.refs += 1
+        try:
+            while True:
+                await result.event.park()
+                yield result.value
+        finally:
+            result.refs -= 1
+            if not result.refs:
+                del self._edge_results[predicate]
 
 
 @asynccontextmanager

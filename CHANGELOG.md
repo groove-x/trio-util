@@ -1,5 +1,10 @@
 # Release history
 
+## trio-util (pending)
+### Fixed
+- `multi_error_defer_to()` would use the wrong context when raising `RuntimeError`
+
+>>>>>>> 66aecfa... fix
 ## trio-util 0.3.0 (2020-10-27)
 ### Added
 - `@trio_async_generator` is a decorator which adapts a generator containing

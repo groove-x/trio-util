@@ -63,6 +63,15 @@ async def test_defer_to_cancelled_decorating_async():
         await foo()
 
 
+async def test_defer_to_cancelled_decorating_sync():
+    @defer_to_cancelled(ValueError)
+    def foo():
+        raise trio.MultiError([_cancelled(), ValueError()])
+
+    with pytest.raises(trio.Cancelled):
+        foo()
+
+
 @pytest.mark.parametrize("context, to_raise, expected_exception", [
     # simple exception
     (multi_error_defer_to(trio.Cancelled, ValueError),

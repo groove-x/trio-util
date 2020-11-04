@@ -4,6 +4,8 @@
 ### Added
 - `transitions()` is a new method of `AsyncValue` that allows subscription
   to value transitions via an iterator.
+### Changed
+- `UnqueuedRepeatedEvent` supports broadcasting to multiple listeners
 ### Fixed
 - `multi_error_defer_to()` would use the wrong context when raising `RuntimeError`
 

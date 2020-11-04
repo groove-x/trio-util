@@ -3,17 +3,18 @@ try:
 except ImportError:
     from trio.hazmat import ParkingLot as WaitQueue
 
+from ._async_bool import AsyncBool
+
 
 class UnqueuedRepeatedEvent:
     """An unqueued repeated event.
 
-    A repeated event may be triggered multiple times, and has only one
-    listener.  A call to set() is ignored if the listener is still processing
-    the previous event (or there is no listener), and won't be queued.
+    The event may be triggered multiple times, and supports multiple listeners.
+    A listener will miss an event if it's blocked processing the previous one.
 
     >>> event = UnqueuedRepeatedEvent()
 
-    One task runs a listening loop, waiting for set():
+    A task listens for events:
 
     >>> async for _ in event:
     >>>    # do blocking work
@@ -29,26 +30,15 @@ class UnqueuedRepeatedEvent:
     """
 
     def __init__(self):
-        self._wait_queue = WaitQueue()
-        self._iteration_open = False
+        self._event = AsyncBool()
 
     def set(self):
-        """Trigger event if there is a waiting listener."""
-        self._wait_queue.unpark_all()
+        """Trigger event."""
+        self._event.value ^= True
 
-    def __aiter__(self):
-        if self._iteration_open:
-            raise RuntimeError(f'{self.__class__.__name__} can only have one listener')
-        return self._listen()
-
-    async def _listen(self):
-        self._iteration_open = True
-        try:
-            while True:
-                await self._wait_queue.park()
-                yield
-        finally:
-            self._iteration_open = False
+    async def __aiter__(self):
+        async for _ in self._event.transitions():
+            yield
 
 
 class MailboxRepeatedEvent:

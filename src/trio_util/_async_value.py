@@ -1,4 +1,4 @@
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from contextlib import asynccontextmanager
 from functools import partial
 
@@ -8,6 +8,8 @@ try:
     from trio.lowlevel import ParkingLot as WaitQueue
 except ImportError:
     from trio.hazmat import ParkingLot as WaitQueue
+
+from ._ref_counted_default_dict import _RefCountedDefaultDict
 
 
 def _ANY_TRANSITION(value, old_value):
@@ -86,8 +88,8 @@ class AsyncValue:
 
     def __init__(self, value):
         self._value = value
-        self._level_results = defaultdict(_Result)
-        self._edge_results = defaultdict(_Result)
+        self._level_results = _RefCountedDefaultDict(_Result)
+        self._edge_results = _RefCountedDefaultDict(_Result)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(value={self.value})"
@@ -102,25 +104,19 @@ class AsyncValue:
         if self._value != x:
             old = self._value
             new = self._value = x
-            for f, result in list(self._level_results.items()):
+            for f, result in self._level_results.items():
                 if f(new):
                     result.value = new
                     result.event.unpark_all()
-            for f, result in list(self._edge_results.items()):
+            for f, result in self._edge_results.items():
                 if f(new, old):
                     result.value = (new, old)
                     result.event.unpark_all()
 
     @staticmethod
     async def _wait_predicate(result_map, predicate):
-        result = result_map[predicate]
-        result.refs += 1
-        try:
+        with result_map.open_ref(predicate) as result:
             await result.event.park()
-        finally:
-            result.refs -= 1
-            if not result.refs:
-                del result_map[predicate]
         return result.value
 
     async def wait_value(self, value_or_predicate, *, held_for=0):
@@ -190,16 +186,10 @@ class AsyncValue:
         # Note this is not simply `while True: await wait_transition(...)`,
         # in order to maintain a ref on the predicate throughout the loop.
         predicate = _ValueWrapper(value_or_predicate)
-        result = self._edge_results[predicate]
-        result.refs += 1
-        try:
+        with self._edge_results.open_ref(predicate) as result:
             while True:
                 await result.event.park()
                 yield result.value
-        finally:
-            result.refs -= 1
-            if not result.refs:
-                del self._edge_results[predicate]
 
 
 @asynccontextmanager

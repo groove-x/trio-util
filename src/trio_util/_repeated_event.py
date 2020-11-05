@@ -1,13 +1,10 @@
-try:
-    from trio.lowlevel import ParkingLot as WaitQueue
-except ImportError:
-    from trio.hazmat import ParkingLot as WaitQueue
+import trio
 
 from ._async_bool import AsyncBool
 
 
 class UnqueuedRepeatedEvent:
-    """An unqueued repeated event.
+    """An unqueued repeated event that supports broadcast
 
     The event may be triggered multiple times, and supports multiple listeners.
     A listener will miss an event if it's blocked processing the previous one.
@@ -22,11 +19,11 @@ class UnqueuedRepeatedEvent:
 
     Another task triggers events:
 
-    >>> event.set()  # trigger event
-    >>> trio.sleep(0)  # event processing starts
-    >>> event.set()  # ignored, because previous event is still being processed
+    >>> event.set()    # trigger event
+    >>> trio.sleep(0)  # listener will enter loop body
+    >>> event.set()    # listener misses this event since it's still in the loop body
     >>> trio.sleep(2)
-    >>> event.set()  # trigger event
+    >>> event.set()    # listener will enter loop body again
     """
 
     def __init__(self):
@@ -42,44 +39,41 @@ class UnqueuedRepeatedEvent:
 
 
 class MailboxRepeatedEvent:
-    """A repeated event which queues up to one set() call.
+    """A single-listener repeated event with one queue slot
 
-    A repeated event may be triggered multiple times, and has only one
-    listener.  Up to one set() call may be queued if the listener is
-    still processing the previous event.
+    MailboxRepeatedEvent is used to coordinate some work whenever a collection
+    or other stateful object is mutated.  Although you may miss intermediate
+    states, you're ensured to eventually receive an event to process the most
+    recent state.
 
-    It's often used for signaling that an out-of-band data location has
-    changed (hence the name "mailbox").  If the data is a collection type
-    (list, etc.) it's safe to use this class, but other types of data are
-    subject to overrun.
+    >>> my_list = []
+    >>> repeated_event = MailboxRepeatedEvent()
 
-    AVOID USING THIS CLASS FOR NON-COLLECTION DATA because data changes can
-    be lost if the listener does not keep up.  Consider using a queue instead
-    (see trio.open_memory_channel) so that there is back pressure ensuring
-    that the data is received.
+    Whenever your collection is mutated, simply call the `set()` method.
 
-    >>> event = MailboxRepeatedEvent()
-    >>> data = None
+    >>> my_list.append('hello')
+    >>> repeated_event.set()
 
-    One task runs a listening loop, waiting for set():
+    The listener to continually process the latest state is simply:
 
-    >>> async for _ in event:
-    >>>    # process data
-    >>>    print(data)
-    >>>    await trio.sleep(1)
+    >>> async for _ in repeated_event:
+    >>>     await persist_to_storage(my_list)
 
-    Another task triggers iteration:
+    Even if you exit the listen loop and start a new one, you'll still receive
+    an event if a set() occurred in the meantime.  Due to this statefulness,
+    only one listener is allowed-- a second listener will encounter a RuntimeError.
 
-    >>> data = 'foo'
-    >>> event.set()  # trigger event
-    >>> trio.sleep(0)  # event processing starts
-    >>> data = 'bar'
-    >>> event.set()  # trigger event (queued since previous event is being processed)
+    To avoid false positives from the "multiple listener" check, it's advised
+    to use `aclosing()` (from the async_generator package or Python 3.10) for
+    deterministic cleanup of the generator:
+
+    >>> async with aclosing(repeated_event.__aiter__()) as events:
+    >>>     async for _ in events:
+    >>>         await persist_to_storage(my_list)
     """
 
     def __init__(self):
-        self._requested = False
-        self._wait_queue = WaitQueue()
+        self._event = trio.Event()
         self._iteration_open = False
 
     def set(self):
@@ -88,21 +82,17 @@ class MailboxRepeatedEvent:
         Up to one event may be queued if there is no waiting listener (i.e.
         no listener, or the listener is still processing the previous event).
         """
-        self._requested = True
-        self._wait_queue.unpark_all()
+        self._event.set()
 
-    def __aiter__(self):
+    async def __aiter__(self):
+        """NOTE: be sure to use with `aclosing()`"""
         if self._iteration_open:
             raise RuntimeError(f'{self.__class__.__name__} can only have one listener')
-        return self._listen()
-
-    async def _listen(self):
         self._iteration_open = True
         try:
             while True:
-                if not self._requested:
-                    await self._wait_queue.park()
-                self._requested = False
+                await self._event.wait()
+                self._event = trio.Event()
                 yield
         finally:
             self._iteration_open = False

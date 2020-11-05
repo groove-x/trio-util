@@ -50,8 +50,7 @@ repeated events
 triggered multiple times.  It's for your own good.
 
 The following are event classes which can be triggered repeatedly in a
-relatively safe manner.  This is achieved by allowing only one listener
-and automatically clearing the event after it's received.
+relatively safe manner.
 
 .. autoclass:: UnqueuedRepeatedEvent
     :members:

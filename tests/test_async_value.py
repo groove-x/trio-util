@@ -244,7 +244,7 @@ async def test_transitions(consume_duration, publish_durations, expected_values,
         async for val, old in x.transitions():
             assert (val, old) == expected_values.pop(0)
             await trio.sleep(consume_duration)
-            if len(expected_values) == 0:
+            if not expected_values:
                 done_event.set()
 
     await wait_all_tasks_blocked()
@@ -260,7 +260,7 @@ async def test_transitions_parallel_consumers(autojump_clock):
     async def _consumer(agen, expected, done):
         async for val, old in agen:
             assert (val, old) == expected.pop(0)
-            if len(expected) == 0:
+            if not expected:
                 done.set()
 
     x = AsyncValue(0)

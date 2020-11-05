@@ -33,7 +33,13 @@ specific value or transition.  :class:`AsyncBool` is just an :class:`AsyncValue`
 that defaults to ``False``.
 
 .. autoclass:: AsyncValue
-    :members:
+
+    .. autoattribute:: value
+    .. automethod:: wait_value
+    .. automethod:: wait_transition
+    .. automethod:: transitions
+        :async-for: value, old_value
+
 .. autoclass:: AsyncBool
     :members:
 

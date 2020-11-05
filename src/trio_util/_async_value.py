@@ -76,6 +76,10 @@ class AsyncValue:
         >>> ...
         >>> # wait for transition by predicate (default: any transition)
         >>> await a.wait_transition(lambda v, old: v > 10 and old < 0)
+        >>> ...
+        >>> # repeated transitions via iteration
+        >>> async for value, _ in a.transitions(lambda v, old: v > 10 and old < 0):
+        >>>     ...
 
     When using `wait_value()` and `wait_transition()`, note that the value may
     have changed again before the caller receives control.

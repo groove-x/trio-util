@@ -60,7 +60,7 @@ class MailboxRepeatedEvent:
     >>>     await persist_to_storage(my_list)
 
     Even if you exit the listen loop and start a new one, you'll still receive
-    an event if a set() occurred in the meantime.  Due to this statefulness,
+    an event if a `set()` occurred in the meantime.  Due to this statefulness,
     only one listener is allowed-- a second listener will encounter a RuntimeError.
 
     To avoid false positives from the "multiple listener" check, it's advised

@@ -121,7 +121,7 @@ jobs:
 
   "python-3.9":
     docker:
-      - image: circleci/python:3.9-rc
+      - image: circleci/python:3.9
 
     working_directory: ~/repo
 

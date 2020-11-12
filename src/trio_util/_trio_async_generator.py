@@ -9,9 +9,9 @@ from async_generator import aclosing
 def trio_async_generator(wrapped):
     """async generator pattern which supports Trio nurseries and cancel scopes
 
-    Decorator which adapts an async generator using Trio constructs for safe use.
-    (Normally, it's not allowed to yield from a nursery or cancel scope when
-    implementing async generators.)
+    Normally, it's not allowed to yield from a Trio nursery or cancel scope when
+    implementing async generators.  This decorator makes it possible to do so,
+    adapting a generator for safe use.
 
     Though the wrapped function is written as a normal async generator, usage
     of the wrapper is different:  the wrapper is an async context manager

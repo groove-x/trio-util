@@ -5,7 +5,7 @@ import trio
 from trio_util import TaskStats
 
 
-def test_trio_timer(caplog, autojump_clock):
+def test_task_stats(caplog, autojump_clock):
     caplog.set_level(logging.INFO)
 
     async def run():

@@ -14,10 +14,8 @@ async def periodic(period):
     On the first iteration, `delta_time` will be `None`.
     """
     t0 = trio.current_time()
-    t_last = None
+    t_last, t_start = None, t0
     while True:
-        t_start = t0 if t_last is None else trio.current_time()
-        yield t_start - t0, None if t_last is None else t_start - t_last
-        user_elapsed = trio.current_time() - t_start
-        await trio.sleep(max(0, period - user_elapsed))
-        t_last = t_start
+        yield t_start - t0, t_start - t_last if t_last is not None else None
+        await trio.sleep_until(t_start + period)
+        t_last, t_start = t_start, trio.current_time()

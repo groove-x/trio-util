@@ -19,11 +19,12 @@ def test_task_stats(caplog, autojump_clock):
 
             @nursery.start_soon
             async def _high_reschedule_rate_task():
-                for _ in range(100):
-                    await trio.sleep(1/100)
+                for _ in range(60):
+                    await trio.sleep(1/60)
 
-    trio.run(run, clock=autojump_clock, instruments=[TaskStats(slow_task_threshold=.015)])
+    trio.run(run, clock=autojump_clock, instruments=[TaskStats(slow_task_threshold=.015,
+                                                               high_rate_task_threshold=50)])
     assert 'slow task step events (> 15 ms)' in caplog.text
     assert '_slow_step_task: 300ms, 200ms' in caplog.text
-    assert 'max task schedule rate: 100 Hz' in caplog.text
+    assert 'high task schedule rates' in caplog.text
     assert '_high_reschedule_rate_task' in caplog.text

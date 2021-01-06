@@ -14,10 +14,19 @@ class TaskStats(trio.abc.Instrument):
     Includes max task wait time, slow task steps, and highest task schedule
     rate.
     """
-    # TODO: auto slow task threshold (e.g. > 98th percentile)
-    def __init__(self, *, slow_task_threshold=.01, current_time=trio.current_time):
+    # TODO: auto thresholds (e.g. > 98th percentile)
+    def __init__(self, *, slow_task_threshold=.01, high_rate_task_threshold=100,
+                 current_time=trio.current_time):
+        """
+        :param slow_task_threshold: tasks with steps higher than this duration
+            (seconds) are reported
+        :param high_rate_task_threshold: tasks scheduling higher than this rate
+            are reported
+        :param current_time: function used to retrieve the current time
+        """
         super().__init__()
         self.slow_task_threshold = slow_task_threshold
+        self.high_rate_task_threshold = high_rate_task_threshold
         self.current_time = current_time
         self.scheduled_start = {}  # task: start_time
         self.max_wait = 0
@@ -25,18 +34,16 @@ class TaskStats(trio.abc.Instrument):
         self.slow_task_steps = defaultdict(list)  # name: dt_list
         self.schedule_counts = defaultdict(int)  # name: count
         self.rate_start = 0
-        self.max_schedule_rate = (None, 0)  # (name, rate)
+        self.high_schedule_rates = defaultdict(float)  # name: max_rate
 
     def task_scheduled(self, task):
         t = self.current_time()
         self.scheduled_start[task] = t
         if t - self.rate_start > RATE_MEASURE_PERIOD:
-            name, count = max(self.schedule_counts.items(),
-                              default=(None, 0),
-                              key=lambda item: item[1])
-            rate = count / RATE_MEASURE_PERIOD
-            if rate > self.max_schedule_rate[1]:
-                self.max_schedule_rate = (name, rate)
+            for name, count in self.schedule_counts.items():
+                rate = count / RATE_MEASURE_PERIOD
+                if rate >= self.high_rate_task_threshold:
+                    self.high_schedule_rates[name] = max(self.high_schedule_rates[name], rate)
             self.rate_start = t
             self.schedule_counts.clear()
         self.schedule_counts[task.name] += 1
@@ -67,5 +74,9 @@ class TaskStats(trio.abc.Instrument):
                                     for dt in sorted(dt_list, reverse=True))
                 text.append(f'  {name}: {dt_text}')
             logger.info('\n'.join(text))
-        max_rate_name, max_rate = self.max_schedule_rate
-        logger.info(f'max task schedule rate: {max_rate:.0f} Hz by {max_rate_name}')
+        if self.high_schedule_rates:
+            text = ['high task schedule rates:']
+            for name, rate in sorted(self.high_schedule_rates.items(),
+                                     key=lambda item: item[1], reverse=True):
+                text.append(f'  {name}: {rate:.0f} Hz')
+            logger.info('\n'.join(text))

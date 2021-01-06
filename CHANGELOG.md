@@ -6,6 +6,8 @@
   to value transitions via an iterator.
 ### Changed
 - `UnqueuedRepeatedEvent` supports broadcasting to multiple listeners
+- `TaskStats` now reports all scheduling rates over a given threshold, rather
+  than the maximum observed rate.
 ### Fixed
 - `multi_error_defer_to()` would use the wrong context when raising `RuntimeError`
 

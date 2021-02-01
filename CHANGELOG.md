@@ -1,6 +1,6 @@
 # Release history
 
-## trio-util (pending)
+## trio-util 0.4.0 (2021-02-01)
 ### Added
 - `transitions()` is a new method of `AsyncValue` that allows subscription
   to value transitions via an iterator.

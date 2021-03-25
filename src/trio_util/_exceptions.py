@@ -15,12 +15,12 @@ class _AsyncFriendlyGeneratorContextManager(_GeneratorContextManager):
 
     def __call__(self, func):
         if iscoroutinefunction(func):
-            wraps(func)
+            @wraps(func)
             async def inner(*args, **kwargs):
                 with self._recreate_cm():  # pylint: disable=not-context-manager
                     return await func(*args, **kwargs)
         else:
-            wraps(func)
+            @wraps(func)
             def inner(*args, **kwargs):
                 with self._recreate_cm():  # pylint: disable=not-context-manager
                     return func(*args, **kwargs)

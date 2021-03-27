@@ -1,10 +1,9 @@
 # Release history
 
-## trio-util (pending)
+## trio-util 0.4.1 (2021-03-27)
 ### Fixed
 - `compose_values()` had a race where the composed value may be incorrect if
-  the underlying AsyncValue items are mutated while entering the async context
-  manager.
+  the underlying values are mutated while entering the async context manager.
 
 ## trio-util 0.4.0 (2021-02-01)
 ### Added

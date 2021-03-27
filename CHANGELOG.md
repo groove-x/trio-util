@@ -1,5 +1,11 @@
 # Release history
 
+## trio-util (pending)
+### Fixed
+- `compose_values()` had a race where the composed value may be incorrect if
+  the underlying AsyncValue items are mutated while entering the async context
+  manager.
+
 ## trio-util 0.4.0 (2021-02-01)
 ### Added
 - `transitions()` is a new method of `AsyncValue` that allows subscription

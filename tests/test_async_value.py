@@ -226,6 +226,26 @@ async def test_compose_values_nested(nursery):
     await done.wait()
 
 
+async def test_compose_values_race(monkeypatch, nursery):
+    # test value modification during enter of the context manager
+
+    original_wait_transition = AsyncValue.wait_transition
+
+    async def _wait_transition(self, value_or_predicate):
+        self.value += 1
+        return await original_wait_transition(self, value_or_predicate)
+
+    # NOTE: This patch assumes the only use of wait_transition is by
+    #   compose_values() for listening to child async values.
+    monkeypatch.setattr(AsyncValue, 'wait_transition', _wait_transition)
+
+    async_x = AsyncValue(42)
+    async_y = AsyncValue(0)
+
+    async with compose_values(x=async_x, y=async_y) as composite:
+        assert composite.value == (43, 1)
+
+
 @pytest.mark.parametrize('consume_duration, publish_durations, expected_values', [
     # fast consumer
     [0.0, [.1] * 3, [(1, 0), (2, 1), (3, 2)]],

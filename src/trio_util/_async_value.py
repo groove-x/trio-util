@@ -25,6 +25,7 @@ class _Result:
         self.refs = 0
 
 
+# TODO: hash functools.partial by func + args + keywords when possible
 class _ValueWrapper:
     """
     If value_or_predicate is not callable, wrap it in a suitable callable, and
@@ -226,7 +227,9 @@ async def compose_values(**value_map):
         if not (values and all(isinstance(e, AsyncValue) for e in values)):
             raise TypeError('expected instances of AsyncValue')
         value_type = namedtuple('CompositeValue', value_map.keys())
-        composite = AsyncValue(value_type._make(e.value for e in values))
+        # NOTE: initial None values are replaced before yielding
+        composite = AsyncValue(value_type._make((None, ) * len(values)))
+        listener_count = AsyncValue(0)
 
         # This predicate is run indefinitely per underlying value and updates
         # the composite as a side effect.
@@ -234,8 +237,17 @@ async def compose_values(**value_map):
             composite.value = composite.value._replace(**{name: val})
             return False
 
-        for name, e in value_map.items():
-            nursery.start_soon(e.wait_transition, partial(_update_composite, name))
+        async def _wait_transition(name, e):
+            listener_count.value += 1
+            await e.wait_transition(partial(_update_composite, name))
+
+        for name_, e in value_map.items():
+            nursery.start_soon(_wait_transition, name_, e)
+
+        # Before yielding, ensure the listen functions are blocked,
+        # and that the composed value is consistent with this blocked state.
+        await listener_count.wait_value(len(values))
+        composite.value = value_type._make(e.value for e in values)
 
         yield composite
         nursery.cancel_scope.cancel()

@@ -226,7 +226,7 @@ async def test_compose_values_nested(nursery):
     await done.wait()
 
 
-async def test_compose_values_race(monkeypatch, nursery):
+async def test_compose_values_race(monkeypatch):
     # test value modification during enter of the context manager
 
     original_wait_transition = AsyncValue.wait_transition

@@ -32,6 +32,27 @@ value wrappers
 specific value or transition.  :class:`AsyncBool` is just an :class:`AsyncValue`
 that defaults to ``False``.
 
+Here's a quick example based on this real use case posted to one of Trio's forums:
+
+.. epigraph::
+
+    I noticed how hard [writing state machines in Trio] becomes, especially when
+    there are requirements like e.g. "when in state paused longer than X toggle
+    to stopped"...
+
+:class:`AsyncValue` together with Trio's cancellation make it easy::
+
+    current_state = AsyncValue(States.INIT)
+    ...
+
+    async def monitor_paused_too_long():
+        while True:
+            await current_state.wait_value(States.PAUSED)
+            with trio.move_on_after(X):
+                await current_state.wait_transition()  # any transition out of PAUSED
+                continue
+            current_state.value = States.STOPPED
+
 .. autoclass:: AsyncValue
 
     .. autoattribute:: value

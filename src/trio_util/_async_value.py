@@ -76,13 +76,19 @@ class AsyncValue:
         >>> # wait for value match by predicate
         >>> await a.wait_value(lambda v: v > 10)
         >>> ...
+        >>> # values via iteration (with eventual consistency)
+        >>> async for value a.eventual_values(lambda v: v > 10):
+        >>>     ...
+        >>> # wait for any transition
+        >>> await a.wait_transition()
+        >>> ...
         >>> # wait for transition by equality
         >>> await a.wait_transition(14)
         >>> ...
-        >>> # wait for transition by predicate (default: any transition)
+        >>> # wait for transition by predicate
         >>> await a.wait_transition(lambda v, old: v > 10 and old < 0)
         >>> ...
-        >>> # repeated transitions via iteration
+        >>> # repeated transitions via iteration (misses values while blocked)
         >>> async for value, _ in a.transitions(lambda v, old: v > 10 and old < 0):
         >>>     ...
 

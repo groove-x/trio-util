@@ -1,6 +1,6 @@
 # Release history
 
-## trio-util (pending)
+## trio-util 0.5.0 (2021-04-06)
 ⚠ includes breaking changes!
 ### Added
 - `eventual_values()` is a new iterator of `AsyncValue` which assures

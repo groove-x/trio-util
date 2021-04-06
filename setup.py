@@ -23,8 +23,7 @@ An assortment of utilities for the Trio async/await framework, including:
   * @trio_async_generator - decorator which adapts a generator containing
      Trio constructs for safe use
   * azip, azip_longest - async zip with parallel iteration
-  * UnqueuedRepeatedEvent, MailboxRepeatedEvent - if you really, really
-    want to reuse an event
+  * RepeatedEvent - if you really, really want to reuse an event
   * and more (... obscure stuff you probably don't need)!
 ''',
     long_description_content_type='text/markdown',

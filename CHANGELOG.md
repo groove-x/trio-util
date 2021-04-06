@@ -1,6 +1,7 @@
 # Release history
 
-## trio-util (pending) - ⚠ breaking changes included!
+## trio-util (pending)
+⚠ includes breaking changes!
 ### Added
 - `eventual_values()` is a new iterator of `AsyncValue` which assures
   "eventual consistency" (i.e. the caller always receives the latest value).

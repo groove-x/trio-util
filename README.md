@@ -16,8 +16,7 @@ including:
   * `@trio_async_generator` - decorator which adapts a generator containing
      Trio constructs for safe use
   * `azip`, `azip_longest` - async zip with parallel iteration
-  * `UnqueuedRepeatedEvent`, `MailboxRepeatedEvent` - if you really, really
-    want to reuse an event
+  * `RepeatedEvent` - if you really, really want to reuse an event
   * and more (... obscure stuff you probably don't need)!
 
 See the [online documentation](https://trio-util.readthedocs.io/en/latest/) for details.

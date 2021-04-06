@@ -384,3 +384,12 @@ async def test_transitions_parallel_consumers(autojump_clock):
         nursery.cancel_scope.cancel()
 
     assert not x._edge_results
+
+
+def test_open_transform():
+    x = AsyncValue(1)
+
+    with x.open_transform(lambda val: val * 2) as y:
+        assert y.value == 2
+        x.value = 10
+        assert y.value == 20

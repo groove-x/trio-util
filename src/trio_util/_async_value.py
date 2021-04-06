@@ -1,5 +1,5 @@
 from collections import namedtuple
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from functools import partial
 
 import trio
@@ -24,12 +24,11 @@ _NONE = object()
 
 
 class _Result:
-    __slots__ = ['event', 'value', 'refs']
+    __slots__ = ['event', 'value']
 
     def __init__(self):
         self.event = WaitQueue()
         self.value = None
-        self.refs = 0
 
 
 # TODO: hash functools.partial by func + args + keywords when possible
@@ -118,6 +117,8 @@ class AsyncValue:
         self._value = value
         self._level_results = _RefCountedDefaultDict(_Result)
         self._edge_results = _RefCountedDefaultDict(_Result)
+        # predicate: AsyncValue
+        self._transforms = _RefCountedDefaultDict(lambda: AsyncValue(_NONE))
 
     def __repr__(self):
         return f"{self.__class__.__name__}(value={self.value})"
@@ -140,6 +141,8 @@ class AsyncValue:
                 if f(new, old):
                     result.value = (new, old)
                     result.event.unpark_all()
+            for f, output in self._transforms.items():
+                output.value = f(new)
 
     @staticmethod
     async def _wait_predicate(result_map, predicate):
@@ -247,6 +250,24 @@ class AsyncValue:
             while True:
                 await result.event.park()
                 yield result.value
+
+    @contextmanager
+    def open_transform(self, function):
+        """Yield a derived AsyncValue with the given transform applied
+
+        Synopsis::
+
+        >>> x = AsyncValue(1)
+        >>> with x.open_transform(lambda val: val * 2) as y:
+        >>>     assert y.value == 2
+        >>>     x.value = 10
+        >>>     assert y.value == 20
+        """
+        # TODO: make the output's `value` read-only somehow
+        with self._transforms.open_ref(function) as output:
+            if output.value is _NONE:
+                output.value = function(self.value)
+            yield output
 
 
 @asynccontextmanager

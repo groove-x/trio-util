@@ -4,6 +4,8 @@
 ### Added
 - `eventual_values()` is a new iterator of `AsyncValue` which assures
   "eventual consistency" (i.e. the caller always receives the latest value).
+- `open_transform()` is a new context manager of `AsyncValue` enabling derived
+  values.
 
 ## trio-util 0.4.1 (2021-03-27)
 ### Fixed

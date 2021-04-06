@@ -4,38 +4,77 @@
 #
 #    pip-compile --output-file=requirements.txt requirements.in
 #
-alabaster==0.7.12         # via sphinx
-async-generator==1.10     # via trio
-attrs==20.2.0             # via outcome, trio
-babel==2.8.0              # via sphinx
-certifi==2020.6.20        # via requests
-chardet==3.0.4            # via requests
-docutils==0.16            # via sphinx
-idna==2.10                # via requests, trio
-imagesize==1.2.0          # via sphinx
-jinja2==2.11.2            # via sphinx
-markupsafe==1.1.1         # via jinja2
-outcome==1.0.1            # via trio
-packaging==20.4           # via sphinx
-pygments==2.6.1           # via sphinx
-pyparsing==2.4.7          # via packaging
-pytz==2020.1              # via babel
-requests==2.24.0          # via sphinx
-six==1.15.0               # via packaging
-sniffio==1.1.0            # via trio
-snowballstemmer==2.0.0    # via sphinx
-sortedcontainers==2.2.2   # via trio
-sphinx-rtd-theme==0.5.0   # via -r requirements.in
-sphinx==3.2.1             # via -r requirements.in, sphinx-rtd-theme, sphinxcontrib-trio
-sphinxcontrib-applehelp==1.0.2  # via sphinx
-sphinxcontrib-devhelp==1.0.2  # via sphinx
-sphinxcontrib-htmlhelp==1.0.3  # via sphinx
-sphinxcontrib-jsmath==1.0.1  # via sphinx
-sphinxcontrib-qthelp==1.0.3  # via sphinx
-sphinxcontrib-serializinghtml==1.1.4  # via sphinx
-sphinxcontrib-trio==1.1.2  # via -r requirements.in
-trio==0.15.1              # via -r requirements.in
-urllib3==1.25.10          # via requests
+alabaster==0.7.12
+    # via sphinx
+async-generator==1.10
+    # via trio
+attrs==20.3.0
+    # via
+    #   outcome
+    #   trio
+babel==2.9.0
+    # via sphinx
+certifi==2020.12.5
+    # via requests
+chardet==4.0.0
+    # via requests
+docutils==0.16
+    # via
+    #   sphinx
+    #   sphinx-rtd-theme
+idna==2.10
+    # via
+    #   requests
+    #   trio
+imagesize==1.2.0
+    # via sphinx
+jinja2==2.11.3
+    # via sphinx
+markupsafe==1.1.1
+    # via jinja2
+outcome==1.1.0
+    # via trio
+packaging==20.9
+    # via sphinx
+pygments==2.8.1
+    # via sphinx
+pyparsing==2.4.7
+    # via packaging
+pytz==2021.1
+    # via babel
+requests==2.25.1
+    # via sphinx
+sniffio==1.2.0
+    # via trio
+snowballstemmer==2.1.0
+    # via sphinx
+sortedcontainers==2.3.0
+    # via trio
+sphinx-rtd-theme==0.5.2
+    # via -r requirements.in
+sphinx==3.5.3
+    # via
+    #   -r requirements.in
+    #   sphinx-rtd-theme
+    #   sphinxcontrib-trio
+sphinxcontrib-applehelp==1.0.2
+    # via sphinx
+sphinxcontrib-devhelp==1.0.2
+    # via sphinx
+sphinxcontrib-htmlhelp==1.0.3
+    # via sphinx
+sphinxcontrib-jsmath==1.0.1
+    # via sphinx
+sphinxcontrib-qthelp==1.0.3
+    # via sphinx
+sphinxcontrib-serializinghtml==1.1.4
+    # via sphinx
+sphinxcontrib-trio==1.1.2
+    # via -r requirements.in
+trio==0.18.0
+    # via -r requirements.in
+urllib3==1.26.4
+    # via requests
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

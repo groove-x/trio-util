@@ -4,33 +4,72 @@
 #
 #    pip-compile --output-file=test-requirements.txt setup.py test-requirements.in
 #
-astroid==2.4.2            # via pylint
-async-generator==1.10     # via pytest-trio, trio, trio_util (setup.py)
-attrs==20.2.0             # via outcome, pytest, trio
-coverage==5.3             # via pytest-cov
-idna==2.10                # via trio
-importlib-metadata==2.0.0  # via pluggy, pytest
-iniconfig==1.0.1          # via pytest
-isort==5.5.3              # via pylint
-lazy-object-proxy==1.4.3  # via astroid
-mccabe==0.6.1             # via pylint
-mypy-extensions==0.4.3    # via mypy
-mypy==0.782               # via -r test-requirements.in
-outcome==1.0.1            # via pytest-trio, trio
-packaging==20.4           # via pytest
-pluggy==0.13.1            # via pytest
-py==1.9.0                 # via pytest
-pylint==2.6.0             # via -r test-requirements.in
-pyparsing==2.4.7          # via packaging
-pytest-cov==2.10.1        # via -r test-requirements.in
-pytest-trio==0.6.0        # via -r test-requirements.in
-pytest==6.1.0             # via -r test-requirements.in, pytest-cov, pytest-trio
-six==1.15.0               # via astroid, packaging
-sniffio==1.1.0            # via trio
-sortedcontainers==2.2.2   # via trio
-toml==0.10.1              # via pylint, pytest
-trio==0.17.0              # via pytest-trio, trio_util (setup.py)
-typed-ast==1.4.1          # via astroid, mypy
-typing-extensions==3.7.4.3  # via mypy
-wrapt==1.12.1             # via astroid
-zipp==3.2.0               # via importlib-metadata
+astroid==2.5.2
+    # via pylint
+async-generator==1.10
+    # via
+    #   pytest-trio
+    #   trio
+    #   trio-util (setup.py)
+attrs==20.3.0
+    # via
+    #   outcome
+    #   pytest
+    #   trio
+coverage==5.5
+    # via pytest-cov
+idna==3.1
+    # via trio
+iniconfig==1.1.1
+    # via pytest
+isort==5.8.0
+    # via pylint
+lazy-object-proxy==1.6.0
+    # via astroid
+mccabe==0.6.1
+    # via pylint
+mypy-extensions==0.4.3
+    # via mypy
+mypy==0.812
+    # via -r test-requirements.in
+outcome==1.1.0
+    # via
+    #   pytest-trio
+    #   trio
+packaging==20.9
+    # via pytest
+pluggy==0.13.1
+    # via pytest
+py==1.10.0
+    # via pytest
+pylint==2.7.4
+    # via -r test-requirements.in
+pyparsing==2.4.7
+    # via packaging
+pytest-cov==2.11.1
+    # via -r test-requirements.in
+pytest-trio==0.7.0
+    # via -r test-requirements.in
+pytest==6.2.3
+    # via
+    #   -r test-requirements.in
+    #   pytest-cov
+    #   pytest-trio
+sniffio==1.2.0
+    # via trio
+sortedcontainers==2.3.0
+    # via trio
+toml==0.10.2
+    # via
+    #   pylint
+    #   pytest
+trio==0.18.0
+    # via
+    #   pytest-trio
+    #   trio-util (setup.py)
+typed-ast==1.4.2
+    # via mypy
+typing-extensions==3.7.4.3
+    # via mypy
+wrapt==1.12.1
+    # via astroid

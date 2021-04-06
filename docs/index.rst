@@ -15,11 +15,11 @@ simple cases.
 :func:`wait_any` and :func:`wait_all` are used to simultaneously
 run async functions which either have side effects and don't return a
 value, or signal merely by exiting.  For example, given two :class:`trio.Event`
-objects ``a`` and ``b``, we can wait until either event is true::
+objects ``a`` and ``b``, we can wait until either event is set::
 
     await wait_any(a.wait, b.wait)
 
-or wait until both events are true::
+or wait until both events are set::
 
     await wait_all(a.wait, b.wait)
 
@@ -29,8 +29,9 @@ or wait until both events are true::
 value wrappers
 --------------
 :class:`AsyncValue` can wrap any type, offering the ability to wait for a
-specific value or transition.  :class:`AsyncBool` is just an :class:`AsyncValue`
-that defaults to ``False``.
+specific value or transition.  It supports various broadcast and "pubsub"
+patterns, composition and transformation of values, and synchronizing
+values with `eventual consistency <http://en.wikipedia.org/wiki/Eventual_consistency>`_.
 
 Here's a quick example based on this real use case posted to one of Trio's forums:
 
@@ -52,6 +53,22 @@ Here's a quick example based on this real use case posted to one of Trio's forum
                 await current_state.wait_transition()  # any transition out of PAUSED
                 continue
             current_state.value = States.STOPPED
+
+(Note that the ``while`` loop and ``wait_value()`` combination can be replaced
+with ``async for _ in current_state.eventual_values(States.PAUSED): ...``, but the
+code above is best for an introduction.)
+
+.. topic:: How does AsyncValue work?
+
+    If you wanted to be notified of specific value changes, one way to implement things
+    would be to relay *every* value change to listeners and have them implement the
+    filtering locally.  But :class:`AsyncValue` does *not* take this approach because
+    it can be fraught with issues like poor performance, queues backing up when there is
+    an unresponsive listener, etc.  Rather, listeners pass a predicate representing
+    the values or transitions they're interested in, and the ``value`` property
+    setter evaluates these `synchronously` and then broadcasts matches as events back
+    to the listener.  This is simple for listeners while being efficient and ensuring
+    that important value changes aren't lost.
 
 .. autoclass:: AsyncValue
 

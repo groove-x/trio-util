@@ -5,6 +5,7 @@ class RepeatedEvent:
     """A repeated event that supports multiple listeners.
 
     RepeatedEvent supports both "unqueued" and "eventual consistency" uses:
+
         * unqueued - drop events while processing the previous one
         * eventual consistency - some events may be missed while processing the
           previous one, but receiving the latest event is ensured

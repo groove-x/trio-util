@@ -62,6 +62,8 @@ Here's a quick example based on this real use case posted to one of Trio's forum
     .. automethod:: wait_transition
     .. automethod:: transitions
         :async-for: value, old_value
+    .. automethod:: open_transform
+        :with: output
 
 .. autoclass:: AsyncBool
     :members:

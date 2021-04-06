@@ -20,6 +20,10 @@ def _ANY_VALUE(value):
     return True
 
 
+def _IDENTITY(x):
+    return x
+
+
 _NONE = object()
 
 
@@ -95,17 +99,17 @@ class AsyncValue:
 
     Comparison of eventual_values() and transitions() iterators::
 
-    eventual_values()                      transitions()
-    =================                      =============
-    • high level & safe                    • low level & requires care
-    • evaluated on each value change       • evaluated on each value change
-        and when starting loop                 if caller not blocked in the body
-    • eventually iterates latest value     • latest value missed if caller is blocked
-    • can miss rapid value changes         • can miss rapid value changes
-    • condition uses new value only        • condition uses new and/or old value
-    • mainly used for sync'ing state       • mainly used for triggering work
-    • not subject to user races            • races possible on init and each iteration
-                                               (especially if value changes infrequently)
+        eventual_values()                      transitions()
+        =================                      =============
+        • high level & safe                    • low level & requires care
+        • evaluated on each value change       • evaluated on each value change
+            and when starting loop                 if caller not blocked in the body
+        • eventually iterates latest value     • latest value missed if caller is blocked
+        • can miss rapid value changes         • can miss rapid value changes
+        • condition uses new value only        • condition uses new and/or old value
+        • mainly used for sync'ing state       • mainly used for triggering work
+        • not subject to user races            • races possible on init and each iteration
+                                                   (especially if value changes infrequently)
 
     Performance note:  assignment to the `value` property typically has O(N)
     complexity, where N is the number of actively waiting tasks.  Shared
@@ -271,7 +275,7 @@ class AsyncValue:
 
 
 @contextmanager
-def compose_values(**value_map):
+def compose_values(_transform_=None, **value_map):
     """Context manager providing a composite of multiple AsyncValues
 
     The composite object itself is an AsyncValue, with the `value` of each
@@ -286,6 +290,7 @@ def compose_values(**value_map):
     since it is exclusively managed by the context.
 
     Synopsis:
+
         >>> async_x, async_y = AsyncValue(-1), AsyncValue(10)
         >>>
         >>> with compose_values(x=async_x, y=async_y) as async_xy:
@@ -293,18 +298,36 @@ def compose_values(**value_map):
         >>>
         >>> result
         CompositeValue(x=-1, y=10)
+
+    The `_transform_` parameter specifies an optional function to transform the
+    final value.  This is equivalent but more efficient than chaining a single
+    open_transform() to the default compose_values() output.  For example:
+
+        >>> with compose_values(x=async_x, y=async_y,
+        >>>                     _transform_=lambda val: val.x * val.y) as x_mul_y:
+        >>>     ...
+
+    is equivalent to:
+
+        >>> with compose_values(x=async_x, y=async_y) as async_xy, \\
+        >>>         async_xy.open_transform(lambda val: val.x * val.y) as x_mul_y:
+        >>>     ...
     """
     with ExitStack() as stack:
+        transform = _transform_ or _IDENTITY
         async_vals = value_map.values()
         if not (async_vals and all(isinstance(av, AsyncValue) for av in async_vals)):
             raise TypeError('expected instances of AsyncValue')
         value_type = namedtuple('CompositeValue', value_map.keys())
-        composite = AsyncValue(value_type._make(av.value for av in async_vals))
+        composite_value = value_type._make(av.value for av in async_vals)
+        composite = AsyncValue(transform(composite_value))
 
         # This dummy wait_value() predicate hooks into each value and updates
         # the composite as a side effect.
         def _update_composite(name, val):
-            composite.value = composite.value._replace(**{name: val})
+            nonlocal composite_value
+            composite_value = composite_value._replace(**{name: val})
+            composite.value = transform(composite_value)
             return False
 
         for name_, async_val in value_map.items():

@@ -8,6 +8,7 @@
   values.
 ### Changed
 - `compose_values()` context manager was changed from async to synchronous.
+- `compose_values()` now takes an optional transform function.
 
 ## trio-util 0.4.1 (2021-03-27)
 ### Fixed

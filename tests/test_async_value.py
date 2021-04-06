@@ -226,6 +226,18 @@ async def test_compose_values_nested(nursery):
     await done.wait()
 
 
+async def test_compose_values_transform():
+    async_x = AsyncValue(42)
+    async_y = AsyncValue(2)
+
+    with compose_values(x=async_x, y=async_y,
+                        _transform_=lambda val: val.x * val.y) as composite:
+        assert composite.value == 84
+        async_y.value = 10
+        assert composite.value == 420
+
+
+
 def _even(v):
     return v & 1 == 0
 

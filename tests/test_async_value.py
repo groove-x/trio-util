@@ -201,7 +201,7 @@ async def test_eventual_values(predicate, consume_duration, publish_durations, e
             assert val == expected_values.pop(0)
             if consume_duration is not None:
                 await trio.sleep(consume_duration)
-            if len(expected_values) == 0:
+            if not expected_values:
                 done_event.set()
 
     await wait_all_tasks_blocked()
@@ -227,7 +227,7 @@ async def test_eventual_values_aba(nursery, autojump_clock):
         async for val in x.eventual_values():
             assert val == expected_values.pop(0)
             await trio.sleep(consume_duration)
-            if len(expected_values) == 0:
+            if not expected_values:
                 done_event.set()
 
     await wait_all_tasks_blocked()

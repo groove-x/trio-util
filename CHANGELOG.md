@@ -9,6 +9,10 @@
 ### Changed
 - `compose_values()` context manager was changed from async to synchronous.
 - `compose_values()` now takes an optional transform function.
+- `RepeatedEvent` replaces both `UnqueuedRepeatedEvent` and `MailboxRepeatedEvent`.
+  The new class handles both unqueued and eventual consistency cases, while
+  supporting multiple listeners.  It also offers a one-shot `wait_event()` method
+  for cases where an iterator isn't needed.
 
 ## trio-util 0.4.1 (2021-03-27)
 ### Fixed

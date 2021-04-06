@@ -176,7 +176,7 @@ async def test_compose_values(nursery):
 
     @nursery.start_soon
     async def _wait():
-        async with compose_values(x=async_x, y=async_y) as composite:
+        with compose_values(x=async_x, y=async_y) as composite:
             assert (composite.value.x, composite.value.y) == (42, 0)
             assert await composite.wait_value(lambda val: val.x < 0 < val.y) == (-1, 10)
         done.set()
@@ -199,7 +199,7 @@ async def test_compose_values(nursery):
 ])
 async def test_compose_values_wrong_usage(context):
     with pytest.raises(TypeError):
-        async with context():
+        with context():
             pass
 
 
@@ -210,7 +210,7 @@ async def test_compose_values_nested(nursery):
 
     @nursery.start_soon
     async def _wait():
-        async with compose_values(x=async_x, y=async_y) as async_xy, \
+        with compose_values(x=async_x, y=async_y) as async_xy, \
                 compose_values(xy=async_xy, text=async_text) as composite:
             assert composite.value == ((1, 2), 'foo')
             assert await composite.wait_value(
@@ -224,26 +224,6 @@ async def test_compose_values_nested(nursery):
     async_text.value = 'bar'
     await wait_all_tasks_blocked()
     await done.wait()
-
-
-async def test_compose_values_race(monkeypatch):
-    # test value modification during enter of the context manager
-
-    original_wait_transition = AsyncValue.wait_transition
-
-    async def _wait_transition(self, value_or_predicate):
-        self.value += 1
-        return await original_wait_transition(self, value_or_predicate)
-
-    # NOTE: This patch assumes the only use of wait_transition is by
-    #   compose_values() for listening to child async values.
-    monkeypatch.setattr(AsyncValue, 'wait_transition', _wait_transition)
-
-    async_x = AsyncValue(42)
-    async_y = AsyncValue(0)
-
-    async with compose_values(x=async_x, y=async_y) as composite:
-        assert composite.value == (43, 1)
 
 
 def _even(v):

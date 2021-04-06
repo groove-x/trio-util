@@ -1,11 +1,13 @@
 # Release history
 
-## trio-util (pending)
+## trio-util (pending) - ⚠ breaking changes included!
 ### Added
 - `eventual_values()` is a new iterator of `AsyncValue` which assures
   "eventual consistency" (i.e. the caller always receives the latest value).
 - `open_transform()` is a new context manager of `AsyncValue` enabling derived
   values.
+### Changed
+- `compose_values()` context manager was changed from async to synchronous.
 
 ## trio-util 0.4.1 (2021-03-27)
 ### Fixed

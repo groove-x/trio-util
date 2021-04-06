@@ -71,7 +71,7 @@ This can be achieved without resorting to polling by employing the
 :func:`compose_values` context manager.
 
 .. autofunction:: compose_values
-    :async-with: composed
+    :with: composed
 
 repeated events
 ---------------

@@ -16,6 +16,13 @@ def _ANY_TRANSITION(value, old_value):
     return True
 
 
+def _ANY_VALUE(value):
+    return True
+
+
+_NONE = object()
+
+
 class _Result:
     __slots__ = ['event', 'value', 'refs']
 
@@ -82,8 +89,24 @@ class AsyncValue:
         >>> async for value, _ in a.transitions(lambda v, old: v > 10 and old < 0):
         >>>     ...
 
-    When using `wait_value()` and `wait_transition()`, note that the value may
-    have changed again before the caller receives control.
+    When using any of the wait methods or iterators in this API, note that
+    the value may have changed again before the caller receives control.
+    For clarity, the specific value that triggered the wakeup is always
+    returned.
+
+    Comparison of eventual_values() and transitions() iterators::
+
+    eventual_values()                      transitions()
+    =================                      =============
+    • high level & safe                    • low level & requires care
+    • evaluated on each value change       • evaluated on each value change
+        and when starting loop                 if caller not blocked in the body
+    • eventually iterates latest value     • latest value missed if caller is blocked
+    • can miss rapid value changes         • can miss rapid value changes
+    • condition uses new value only        • condition uses new and/or old value
+    • mainly used for sync'ing state       • mainly used for triggering work
+    • not subject to user races            • races possible on init and each iteration
+                                               (especially if value changes infrequently)
 
     Performance note:  assignment to the `value` property typically has O(N)
     complexity, where N is the number of actively waiting tasks.  Shared
@@ -153,6 +176,35 @@ class AsyncValue:
                     continue
             break
         return value
+
+    async def eventual_values(self, value_or_predicate=_ANY_VALUE):
+        """
+        Yield values matching the predicate with eventual consistency
+
+        The initial value will be yielded immediately if it matches the
+        predicate.  Subsequent yields occur whenever the `value` property
+        changes to a value matching the predicate.  Note that rapid changes as
+        well as multiple changes while the caller body is blocked will not all
+        be reflected, but eventual consistency is ensured.
+
+        The default predicate will match any value.
+
+        If a non-callable is provided, it's equivalent to a predicate matching
+        the given value.
+        """
+        predicate = _ValueWrapper(value_or_predicate)
+        last_value = None
+        with self._level_results.open_ref(predicate) as result, \
+                self._level_results.open_ref(lambda v: v != last_value) as not_last_value:
+            while True:
+                if predicate(self._value):
+                    last_value = self._value
+                else:
+                    await result.event.park()
+                    last_value = result.value
+                yield last_value
+                if self._value == last_value:
+                    await not_last_value.event.park()
 
     # TODO: held_for
     # TODO: implement wait_transition() using transitions()

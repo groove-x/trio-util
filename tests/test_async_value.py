@@ -246,6 +246,74 @@ async def test_compose_values_race(monkeypatch):
         assert composite.value == (43, 1)
 
 
+def _even(v):
+    return v & 1 == 0
+
+
+def _odd(v):
+    return v & 1 == 1
+
+
+@pytest.mark.parametrize('predicate, consume_duration, publish_durations, expected_values', [
+    # fast consumer
+    (None,  0.0, [.1] * 3, [0, 1, 2, 3]),
+    (_even, 0.0, [.1] * 6, [0, 2, 4, 6]),
+    (_odd,  0.0, [.1] * 6, [1, 3, 5]),  # (initial value doesn't match)
+    # consumer is a little slower (1s vs .9s), but no lost value
+    (None,  1.0, [.9] * 3, [0, 1, 2, 3]),
+    # slow consumer misses a change
+    (None,  1.0, [.4] * 3, [0, 2, 3]),
+])
+async def test_eventual_values(predicate, consume_duration, publish_durations, expected_values,
+                               nursery, autojump_clock):
+    expected_values = expected_values[:]
+    x = AsyncValue(0)  # publisher uses sequence [0, 1, 2, ...]
+    done_event = trio.Event()
+
+    @nursery.start_soon
+    async def _consumer():
+        iterator = x.eventual_values() if predicate is None \
+                else x.eventual_values(predicate)
+        async for val in iterator:
+            assert val == expected_values.pop(0)
+            if consume_duration is not None:
+                await trio.sleep(consume_duration)
+            if len(expected_values) == 0:
+                done_event.set()
+
+    await wait_all_tasks_blocked()
+    for duration in publish_durations:
+        if duration is not None:
+            await trio.sleep(duration)
+        x.value += 1
+    await done_event.wait()
+
+
+async def test_eventual_values_aba(nursery, autojump_clock):
+    x = AsyncValue(0)  # publisher uses sequence [0, 1, 0, 1, ...]
+    done_event = trio.Event()
+
+    # ABA while consumer blocked does not yield a value (by design)
+    # https://en.wikipedia.org/wiki/ABA_problem
+    consume_duration = 1
+    publish_durations = [.1] * 4
+    expected_values = [0]
+
+    @nursery.start_soon
+    async def _consumer():
+        async for val in x.eventual_values():
+            assert val == expected_values.pop(0)
+            await trio.sleep(consume_duration)
+            if len(expected_values) == 0:
+                done_event.set()
+
+    await wait_all_tasks_blocked()
+    for duration in publish_durations:
+        await trio.sleep(duration)
+        x.value ^= 1
+    await done_event.wait()
+
+
 @pytest.mark.parametrize('consume_duration, publish_durations, expected_values', [
     # fast consumer
     [0.0, [.1] * 3, [(1, 0), (2, 1), (3, 2)]],

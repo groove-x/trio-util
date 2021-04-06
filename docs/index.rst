@@ -57,6 +57,8 @@ Here's a quick example based on this real use case posted to one of Trio's forum
 
     .. autoattribute:: value
     .. automethod:: wait_value
+    .. automethod:: eventual_values
+        :async-for: value
     .. automethod:: wait_transition
     .. automethod:: transitions
         :async-for: value, old_value

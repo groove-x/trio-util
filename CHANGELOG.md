@@ -1,5 +1,10 @@
 # Release history
 
+## trio-util (pending)
+### Added
+- `eventual_values()` is a new iterator of `AsyncValue` which assures
+  "eventual consistency" (i.e. the caller always receives the latest value).
+
 ## trio-util 0.4.1 (2021-03-27)
 ### Fixed
 - `compose_values()` had a race where the composed value may be incorrect if

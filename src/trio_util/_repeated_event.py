@@ -1,98 +1,90 @@
-import trio
-
-from ._async_bool import AsyncBool
+from ._async_value import AsyncValue
 
 
-class UnqueuedRepeatedEvent:
-    """An unqueued repeated event that supports broadcast
+class RepeatedEvent:
+    """A repeated event that supports multiple listeners.
 
-    The event may be triggered multiple times, and supports multiple listeners.
-    A listener will miss an event if it's blocked processing the previous one.
-
-    >>> event = UnqueuedRepeatedEvent()
-
-    A task listens for events:
-
-    >>> async for _ in event:
-    >>>    # do blocking work
-    >>>    await trio.sleep(1)
-
-    Another task triggers events:
-
-    >>> event.set()    # trigger event
-    >>> trio.sleep(0)  # listener will enter loop body
-    >>> event.set()    # listener misses this event since it's still in the loop body
-    >>> trio.sleep(2)
-    >>> event.set()    # listener will enter loop body again
+    RepeatedEvent supports both "unqueued" and "eventual consistency" uses:
+        * unqueued - drop events while processing the previous one
+        * eventual consistency - some events may be missed while processing the
+          previous one, but receiving the latest event is ensured
     """
 
     def __init__(self):
-        self._event = AsyncBool()
+        self._event = AsyncValue(0)
 
     def set(self):
-        """Trigger event."""
-        self._event.value ^= True
+        """Trigger an event"""
+        self._event.value += 1
 
-    async def __aiter__(self):
+    async def wait(self):
+        """Wait for the next event"""
+        token = self._event.value
+        await self._event.wait_value(lambda val: val > token)
+
+    async def unqueued_events(self):
+        """Unqueued event iterator
+
+        The listener will miss an event if it's blocked processing the previous
+        one.  This is effectively the same as the following manual loop::
+
+        >>> while True:
+        >>>     await event.wait()
+        >>>     # do work...
+
+        Typical usage::
+
+            >>> event = RepeatedEvent()
+
+            A task listens for events:
+
+            >>> async for _ in event.unqueued_events():
+            >>>    # do blocking work
+            >>>    await trio.sleep(1)
+
+            Another task triggers events:
+
+            >>> event.set()    # trigger event
+            >>> trio.sleep(0)  # listener will enter loop body
+            >>> event.set()    # listener misses this event since it's still in the loop body
+            >>> trio.sleep(2)
+            >>> event.set()    # listener will enter loop body again
+        """
         async for _ in self._event.transitions():
             yield
 
+    async def events(self, *, repeat_last=False):
+        """Event iterator with eventual consistency
 
-class MailboxRepeatedEvent:
-    """A single-listener repeated event with one queue slot
+        Use this iterator to coordinate some work whenever a collection
+        or other stateful object is mutated.  Although you may miss intermediate
+        states, you're ensured to eventually receive an event to process the most
+        recent state.  (https://en.wikipedia.org/wiki/Eventual_consistency)
 
-    MailboxRepeatedEvent is used to coordinate some work whenever a collection
-    or other stateful object is mutated.  Although you may miss intermediate
-    states, you're ensured to eventually receive an event to process the most
-    recent state.
+        :param repeat_last: if true, repeat the last position in the event
+          stream.  If no event has been set yet it still yields immediately,
+          representing the "start" position.
 
-    >>> my_list = []
-    >>> repeated_event = MailboxRepeatedEvent()
+        Typical usage::
 
-    Whenever your collection is mutated, simply call the `set()` method.
+            >>> my_list = []
+            >>> repeated_event = RepeatedEvent()
 
-    >>> my_list.append('hello')
-    >>> repeated_event.set()
+            Whenever your collection is mutated, call the `set()` method.
 
-    The listener to continually process the latest state is simply:
+            >>> my_list.append('hello')
+            >>> repeated_event.set()
 
-    >>> async for _ in repeated_event:
-    >>>     await persist_to_storage(my_list)
+            The listener to continually process the latest state is:
 
-    Even if you exit the listen loop and start a new one, you'll still receive
-    an event if a `set()` occurred in the meantime.  Due to this statefulness,
-    only one listener is allowed-- a second listener will encounter a RuntimeError.
+            >>> async for _ in repeated_event.events():
+            >>>     await persist_to_storage(my_list)
 
-    To avoid false positives from the "multiple listener" check, it's advised
-    to use `aclosing()` (from the async_generator package or Python 3.10) for
-    deterministic cleanup of the generator:
-
-    >>> async with aclosing(repeated_event.__aiter__()) as events:
-    >>>     async for _ in events:
-    >>>         await persist_to_storage(my_list)
-    """
-
-    def __init__(self):
-        self._event = trio.Event()
-        self._iteration_open = False
-
-    def set(self):
-        """Trigger event
-
-        Up to one event may be queued if there is no waiting listener (i.e.
-        no listener, or the listener is still processing the previous event).
+            If you'd like to persist the initial state of the list (before any
+            set() is called), use the `repeat_last=True` option.
         """
-        self._event.set()
-
-    async def __aiter__(self):
-        """NOTE: be sure to use with `aclosing()`"""
-        if self._iteration_open:
-            raise RuntimeError(f'{self.__class__.__name__} can only have one listener')
-        self._iteration_open = True
-        try:
-            while True:
-                await self._event.wait()
-                self._event = trio.Event()
-                yield
-        finally:
-            self._iteration_open = False
+        token = self._event.value
+        if repeat_last:
+            token -= 1
+        async for _ in self._event.eventual_values(lambda val: val > token):
+            yield

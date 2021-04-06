@@ -80,12 +80,10 @@ repeated events
 :class:`trio.Event` does not offer a clear() method, so it can't be
 triggered multiple times.  It's for your own good.
 
-The following are event classes which can be triggered repeatedly in a
-relatively safe manner.
+:class:`RepeatedEvent` can be triggered repeatedly in a relatively safe manner
+while having multiple listeners.
 
-.. autoclass:: UnqueuedRepeatedEvent
-    :members:
-.. autoclass:: MailboxRepeatedEvent
+.. autoclass:: RepeatedEvent
     :members:
 
 generators

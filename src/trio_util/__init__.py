@@ -5,7 +5,7 @@ from ._async_value import AsyncValue, compose_values
 from ._awaitables import wait_all, wait_any
 from ._exceptions import defer_to_cancelled, multi_error_defer_to
 from ._periodic import periodic
-from ._repeated_event import UnqueuedRepeatedEvent, MailboxRepeatedEvent
+from ._repeated_event import RepeatedEvent
 from ._task_stats import TaskStats
 from ._trio_async_generator import trio_async_generator
 

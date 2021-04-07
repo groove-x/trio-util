@@ -47,6 +47,11 @@ def compose_values(_transform_=None, **value_map):
         >>> with compose_values(x=async_x, y=async_y) as async_xy, \\
         >>>         async_xy.open_transform(lambda val: val.x * val.y) as x_mul_y:
         >>>     ...
+
+    Performance note:  predicates on the output AsyncValue will be evaluated
+    on every assignment to the `value` properties of the input AsyncValues.
+    So if two inputs are being composed, each updated 10 times per second,
+    the output predicates will be evaluated 20 times per second.
     """
     transform = _transform_ or _IDENTITY
     async_vals = value_map.values()
@@ -67,7 +72,7 @@ def compose_values(_transform_=None, **value_map):
     with ExitStack() as stack:
         for name_, async_val in value_map.items():
             # NOTE: by using AsyncValue internals we avoid running wait_value()
-            # as a child task for each event.
+            # as a child task for each input.
             stack.enter_context(
                 async_val._level_results.open_ref(partial(_update_composite, name_)))
 

@@ -216,7 +216,6 @@ class AsyncValue(Generic[VT]):
                 if self._value == last_value:
                     await not_last_value.event.park()
 
-    # TODO: held_for
     # TODO: implement wait_transition() using transitions()
     async def wait_transition(self, value_or_predicate=_ANY_TRANSITION) -> Tuple[VT, VT]:
         """
@@ -227,6 +226,11 @@ class AsyncValue(Generic[VT]):
 
         If a non-callable is provided, it's equivalent to a predicate matching
         the given value.
+
+        Note that unlike `wait_value()`, it is easy to have race conditions
+        when using `wait_transition()`.  Always consider whether it's possible
+        for the initially desired transition to have already occurred due to
+        task scheduling order, etc.
 
         returns (value, old_value) which satisfied the predicate
         """
@@ -248,6 +252,11 @@ class AsyncValue(Generic[VT]):
             >>> while True:
             >>>     value, old_value = await async_value.wait_transition(...)
             >>>     ...
+
+        Unlike the `eventual_values()` iterator, use of the `transitions()` is
+        prone to races when entering the loop.  Always consider whether it's
+        possible for the desired transition to have already occurred due to
+        task scheduling order, etc.
         """
 
         # Note this is not simply `while True: await wait_transition(...)`,
@@ -258,6 +267,7 @@ class AsyncValue(Generic[VT]):
                 await result.event.park()
                 yield result.value
 
+    # TODO: make the output's `value` read-only somehow
     def open_transform(self, function: Callable[[VT], VT_OUT]) \
             -> ContextManager['AsyncValue[VT_OUT]']:
         """Yield a derived AsyncValue with the given transform applied
@@ -275,7 +285,6 @@ class AsyncValue(Generic[VT]):
 
     @contextmanager
     def _open_transform(self, function):
-        # TODO: make the output's `value` read-only somehow
         with self._transforms.open_ref(function) as output:
             if output.value is _NONE:
                 output.value = function(self.value)

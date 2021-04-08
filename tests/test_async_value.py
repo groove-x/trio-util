@@ -239,7 +239,7 @@ async def test_eventual_values_aba(nursery, autojump_clock):
 
 @pytest.mark.parametrize('consume_duration, publish_durations, expected_values', [
     # fast consumer
-    [0.0, [.1] * 3, [(1, 0), (2, 1), (3, 2)]],
+    (0.0, [.1] * 3, [(1, 0), (2, 1), (3, 2)]),
     # consumer is a little slower (1s vs .9s), so middle transition lost
     (1.0, [.9] * 3, [(1, 0), (3, 2)]),
     # force lost transition due to multiple transitions before subscriber body is entered

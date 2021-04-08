@@ -72,3 +72,24 @@ async def test_compose_values_transform():
         assert composite.value == 84
         async_y.value = 10
         assert composite.value == 420
+
+
+async def test_compose_values_fast_transition():
+    # Confirm that composed values are not subject to issues with missed
+    # wakeups.  This is true because the implementation relays value changes
+    # synchronously from the value setter.
+    event = AsyncValue(0)
+    N = 5
+
+    with compose_values(e=event) as composite:
+        async def _listener(expected):
+            await composite.wait_value(expected)
+
+        async with trio.open_nursery() as nursery:
+            for i in range(N):
+                nursery.start_soon(_listener, (i+1,))
+            await wait_all_tasks_blocked()
+            # mutate value several times in one scheduler frame
+            for i in range(N):
+                event.value += 1
+        # all listeners exited, so they received their respective events

@@ -1,5 +1,9 @@
 # Release history
 
+## trio-util (pending)
+### Added
+- `AsyncValue` now has type hints and generic typing
+
 ## trio-util 0.5.0 (2021-04-06)
 ⚠ includes breaking changes!
 ### Added

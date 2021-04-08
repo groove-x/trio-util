@@ -1,6 +1,7 @@
 from collections import namedtuple
 from contextlib import contextmanager, ExitStack
 from functools import partial
+from typing import ContextManager, Optional, Callable, Any
 
 from ._async_value import AsyncValue
 
@@ -9,8 +10,9 @@ def _IDENTITY(x):
     return x
 
 
-@contextmanager
-def compose_values(_transform_=None, **value_map):
+# TODO: more specific output type, perhaps using @overload
+def compose_values(_transform_: Optional[Callable[[Any], Any]] = None,
+                   **value_map: AsyncValue) -> ContextManager[AsyncValue]:
     """Context manager providing a composite of multiple AsyncValues
 
     The composite object itself is an AsyncValue, with the `value` of each
@@ -53,6 +55,12 @@ def compose_values(_transform_=None, **value_map):
     So if two inputs are being composed, each updated 10 times per second,
     the output predicates will be evaluated 20 times per second.
     """
+    # type hint workaround for https://youtrack.jetbrains.com/issue/PY-36444
+    return _compose_values(_transform_, value_map)
+
+
+@contextmanager
+def _compose_values(_transform_, value_map):
     transform = _transform_ or _IDENTITY
     async_vals = value_map.values()
     if not (async_vals and all(isinstance(av, AsyncValue) for av in async_vals)):

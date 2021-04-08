@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from typing import TypeVar, Generic, AsyncIterator, Tuple, ContextManager, Callable
 
 import trio
 
@@ -19,6 +20,8 @@ def _ANY_VALUE(value):
 
 
 _NONE = object()
+VT = TypeVar('VT')
+VT_OUT = TypeVar('VT_OUT')
 
 
 class _Result:
@@ -60,7 +63,7 @@ class _ValueWrapper:
         return x == self.value
 
 
-class AsyncValue:
+class AsyncValue(Generic[VT]):
     """
     Value wrapper offering the ability to wait for a value or transition.
 
@@ -117,7 +120,7 @@ class AsyncValue:
     predicates.
     """
 
-    def __init__(self, value):
+    def __init__(self, value: VT):
         self._value = value
         self._level_results = _RefCountedDefaultDict(_Result)
         self._edge_results = _RefCountedDefaultDict(_Result)
@@ -128,12 +131,12 @@ class AsyncValue:
         return f"{self.__class__.__name__}(value={self.value})"
 
     @property
-    def value(self):
+    def value(self) -> VT:
         """The wrapped value"""
         return self._value
 
     @value.setter
-    def value(self, x):
+    def value(self, x: VT):
         if self._value != x:
             old = self._value
             new = self._value = x
@@ -154,7 +157,7 @@ class AsyncValue:
             await result.event.park()
         return result.value
 
-    async def wait_value(self, value_or_predicate, *, held_for=0):
+    async def wait_value(self, value_or_predicate, *, held_for=0) -> VT:
         """
         Wait until given predicate f(value) is True.
 
@@ -184,7 +187,7 @@ class AsyncValue:
             break
         return value
 
-    async def eventual_values(self, value_or_predicate=_ANY_VALUE):
+    async def eventual_values(self, value_or_predicate=_ANY_VALUE) -> AsyncIterator[VT]:
         """
         Yield values matching the predicate with eventual consistency
 
@@ -200,7 +203,7 @@ class AsyncValue:
         the given value.
         """
         predicate = _ValueWrapper(value_or_predicate)
-        last_value = None
+        last_value = self._value
         with self._level_results.open_ref(predicate) as result, \
                 self._level_results.open_ref(lambda v: v != last_value) as not_last_value:
             while True:
@@ -215,7 +218,7 @@ class AsyncValue:
 
     # TODO: held_for
     # TODO: implement wait_transition() using transitions()
-    async def wait_transition(self, value_or_predicate=_ANY_TRANSITION):
+    async def wait_transition(self, value_or_predicate=_ANY_TRANSITION) -> Tuple[VT, VT]:
         """
         Wait until given predicate f(value, old_value) is True.
 
@@ -229,7 +232,7 @@ class AsyncValue:
         """
         return await self._wait_predicate(self._edge_results, _ValueWrapper(value_or_predicate))
 
-    async def transitions(self, value_or_predicate=_ANY_TRANSITION):
+    async def transitions(self, value_or_predicate=_ANY_TRANSITION) -> AsyncIterator[Tuple[VT, VT]]:
         """
         Yield (value, old_value) for transitions matching the predicate
 
@@ -255,8 +258,8 @@ class AsyncValue:
                 await result.event.park()
                 yield result.value
 
-    @contextmanager
-    def open_transform(self, function):
+    def open_transform(self, function: Callable[[VT], VT_OUT]) \
+            -> ContextManager['AsyncValue[VT_OUT]']:
         """Yield a derived AsyncValue with the given transform applied
 
         Synopsis::
@@ -267,6 +270,11 @@ class AsyncValue:
         >>>     x.value = 10
         >>>     assert y.value == 20
         """
+        # type hint workaround for https://youtrack.jetbrains.com/issue/PY-36444
+        return self._open_transform(function)
+
+    @contextmanager
+    def _open_transform(self, function):
         # TODO: make the output's `value` read-only somehow
         with self._transforms.open_ref(function) as output:
             if output.value is _NONE:

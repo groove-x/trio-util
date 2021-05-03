@@ -1,4 +1,4 @@
-import trio
+import anyio
 
 
 async def _wait_and_call(f1, f2):
@@ -19,7 +19,7 @@ async def wait_any(*args):
         await wait_any(partial(foo, 'hello'),
                        partial(bar, debug=True))
     """
-    async with trio.open_nursery() as nursery:
+    async with anyio.create_task_group() as nursery:
         cancel = nursery.cancel_scope.cancel
         for f in args:
             nursery.start_soon(_wait_and_call, f, cancel)
@@ -36,6 +36,6 @@ async def wait_all(*args):
     While waiting for the other async function to complete, the state which
     satisfied the condition may change.
     """
-    async with trio.open_nursery() as nursery:
+    async with anyio.create_task_group() as nursery:
         for f in args:
             nursery.start_soon(f)

@@ -25,6 +25,8 @@ An assortment of utilities for the Trio async/await framework, including:
   * azip, azip_longest - async zip with parallel iteration
   * RepeatedEvent - if you really, really want to reuse an event
   * and more (... obscure stuff you probably don't need)!
+
+Additionally supports asyncio (via anyio).
 ''',
     long_description_content_type='text/markdown',
     version=version,
@@ -36,7 +38,7 @@ An assortment of utilities for the Trio async/await framework, including:
     package_dir={'': 'src'},
     install_requires=[
         'async_generator',
-        'trio >= 0.11.0'
+        'anyio ~= 3.0',
     ],
     python_requires='>=3.7',
     classifiers=[
@@ -47,6 +49,7 @@ An assortment of utilities for the Trio async/await framework, including:
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Framework :: AsyncIO',
         'Framework :: Trio',
     ],
 )

@@ -1,4 +1,4 @@
-import trio
+import anyio
 
 
 async def _azip(*aiterables, fillvalue, stop_any):
@@ -14,7 +14,7 @@ async def _azip(*aiterables, fillvalue, stop_any):
                 nonlocal stop_count
                 stop_count += 1  # pylint: disable=undefined-variable
 
-        async with trio.open_nursery() as nursery:
+        async with anyio.create_task_group() as nursery:
             for i, iterator in enumerate(iters):
                 nursery.start_soon(collect, i, iterator)
 

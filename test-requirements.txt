@@ -4,6 +4,8 @@
 #
 #    pip-compile --output-file=test-requirements.txt setup.py test-requirements.in
 #
+anyio==3.0.1
+    # via trio-util (setup.py)
 astroid==2.5.2
     # via pylint
 async-generator==1.10
@@ -19,7 +21,9 @@ attrs==20.3.0
 coverage==5.5
     # via pytest-cov
 idna==3.1
-    # via trio
+    # via
+    #   anyio
+    #   trio
 iniconfig==1.1.1
     # via pytest
 isort==5.8.0
@@ -56,7 +60,9 @@ pytest==6.2.3
     #   pytest-cov
     #   pytest-trio
 sniffio==1.2.0
-    # via trio
+    # via
+    #   anyio
+    #   trio
 sortedcontainers==2.3.0
     # via trio
 toml==0.10.2
@@ -64,9 +70,7 @@ toml==0.10.2
     #   pylint
     #   pytest
 trio==0.18.0
-    # via
-    #   pytest-trio
-    #   trio-util (setup.py)
+    # via pytest-trio
 typed-ast==1.4.2
     # via mypy
 typing-extensions==3.7.4.3

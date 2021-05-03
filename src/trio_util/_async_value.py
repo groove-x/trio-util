@@ -1,12 +1,7 @@
 from contextlib import contextmanager
 from typing import TypeVar, Generic, AsyncIterator, Tuple, ContextManager, Callable
 
-import trio
-
-try:
-    from trio.lowlevel import ParkingLot as WaitQueue
-except ImportError:  # pragma: no cover
-    from trio.hazmat import ParkingLot as WaitQueue
+import anyio
 
 from ._ref_counted_default_dict import _RefCountedDefaultDict
 
@@ -28,7 +23,7 @@ class _Result:
     __slots__ = ['event', 'value']
 
     def __init__(self):
-        self.event = WaitQueue()
+        self.event = anyio.Event()
         self.value = None
 
 
@@ -143,18 +138,20 @@ class AsyncValue(Generic[VT]):
             for f, result in self._level_results.items():
                 if f(new):
                     result.value = new
-                    result.event.unpark_all()
+                    result.event.set()
+                    result.event = anyio.Event()
             for f, result in self._edge_results.items():
                 if f(new, old):
                     result.value = (new, old)
-                    result.event.unpark_all()
+                    result.event.set()
+                    result.event = anyio.Event()
             for f, output in self._transforms.items():
                 output.value = f(new)
 
     @staticmethod
     async def _wait_predicate(result_map, predicate):
         with result_map.open_ref(predicate) as result:
-            await result.event.park()
+            await result.event.wait()
         return result.value
 
     async def wait_value(self, value_or_predicate, *, held_for=0) -> VT:
@@ -179,9 +176,9 @@ class AsyncValue(Generic[VT]):
                 value = await self._wait_predicate(self._level_results, predicate)
             else:
                 value = self._value
-                await trio.sleep(0)
+                await anyio.sleep(0)
             if held_for > 0:
-                with trio.move_on_after(held_for):
+                with anyio.move_on_after(held_for):
                     await self.wait_value(lambda v: not predicate(v))
                     continue
             break
@@ -210,11 +207,11 @@ class AsyncValue(Generic[VT]):
                 if predicate(self._value):
                     last_value = self._value
                 else:
-                    await result.event.park()
+                    await result.event.wait()
                     last_value = result.value
                 yield last_value
                 if self._value == last_value:
-                    await not_last_value.event.park()
+                    await not_last_value.event.wait()
 
     # TODO: implement wait_transition() using transitions()
     async def wait_transition(self, value_or_predicate=_ANY_TRANSITION) -> Tuple[VT, VT]:
@@ -264,7 +261,7 @@ class AsyncValue(Generic[VT]):
         predicate = _ValueWrapper(value_or_predicate)
         with self._edge_results.open_ref(predicate) as result:
             while True:
-                await result.event.park()
+                await result.event.wait()
                 yield result.value
 
     # TODO: make the output's `value` read-only somehow

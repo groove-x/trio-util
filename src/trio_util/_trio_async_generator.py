@@ -2,7 +2,7 @@ import functools
 import sys
 from contextlib import asynccontextmanager
 
-import trio
+import anyio
 from async_generator import aclosing
 
 
@@ -40,10 +40,11 @@ def trio_async_generator(wrapped):
     @asynccontextmanager
     @functools.wraps(wrapped)
     async def wrapper(*args, **kwargs):
-        send_channel, receive_channel = trio.open_memory_channel(0)
-        async with trio.open_nursery() as nursery:
+        send_channel, receive_channel = anyio.create_memory_object_stream(0)
+        async with anyio.create_task_group() as nursery:
             async def adapter():
-                async with send_channel, aclosing(wrapped(*args, **kwargs)) as agen:
+                async with send_channel, \
+                        aclosing(wrapped(*args, **kwargs)) as agen:  # pylint: disable=not-async-context-manager
                     while True:
                         try:
                             # Advance underlying async generator to next yield
@@ -55,7 +56,7 @@ def trio_async_generator(wrapped):
                                 # Forward the yielded value into the send channel
                                 try:
                                     await send_channel.send(value)
-                                except trio.BrokenResourceError:
+                                except anyio.BrokenResourceError:
                                     return
                                 break
                             except BaseException:  # pylint: disable=broad-except
@@ -68,6 +69,6 @@ def trio_async_generator(wrapped):
                                     return
 
             nursery.start_soon(adapter, name=wrapped)
-            async with receive_channel:
+            async with receive_channel:  # pylint: disable=not-async-context-manager
                 yield receive_channel
     return wrapper

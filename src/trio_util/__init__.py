@@ -4,10 +4,8 @@ from ._async_itertools import azip, azip_longest
 from ._async_value import AsyncValue
 from ._awaitables import wait_all, wait_any
 from ._compose_values import compose_values
-from ._exceptions import defer_to_cancelled, multi_error_defer_to
 from ._periodic import periodic
 from ._repeated_event import RepeatedEvent
-from ._task_stats import TaskStats
 from ._trio_async_generator import trio_async_generator
 
 def _metadata_fix():

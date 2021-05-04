@@ -115,16 +115,3 @@ iterators
     :async:
 .. autofunction:: azip_longest
     :async:
-
-exceptions
-----------
-.. autofunction:: multi_error_defer_to
-    :no-auto-options:
-    :with:
-.. autofunction:: defer_to_cancelled
-    :with:
-
-miscellaneous
--------------
-.. autoclass:: TaskStats
-    :show-inheritance:

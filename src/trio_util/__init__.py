@@ -13,7 +13,7 @@ from ._trio_async_generator import trio_async_generator
 def _metadata_fix():
     # don't do this for Sphinx case because it breaks "bysource" member ordering
     import sys
-    if 'sphinx' in sys.modules:
+    if 'sphinx' in sys.modules:  # pragma: no cover
         return
 
     for name, value in globals().items():

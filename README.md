@@ -1,4 +1,5 @@
 [![Build status](https://img.shields.io/circleci/build/github/groove-x/trio-util)](https://circleci.com/gh/groove-x/trio-util)
+[![Code coverage](https://img.shields.io/codecov/c/gh/groove-x/trio-util)](https://app.codecov.io/gh/groove-x/trio-util)
 [![Package version](https://img.shields.io/pypi/v/trio-util.svg)](https://pypi.org/project/trio-util)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/trio-util.svg)](https://pypi.org/project/trio-util)
 [![Documentation Status](https://readthedocs.org/projects/trio-util/badge/?version=latest)](https://trio-util.readthedocs.io/en/latest/?badge=latest)

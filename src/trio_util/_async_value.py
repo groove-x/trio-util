@@ -5,7 +5,7 @@ import trio
 
 try:
     from trio.lowlevel import ParkingLot as WaitQueue
-except ImportError:
+except ImportError:  # pragma: no cover
     from trio.hazmat import ParkingLot as WaitQueue
 
 from ._ref_counted_default_dict import _RefCountedDefaultDict

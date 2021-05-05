@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath('../src'))
 # -- Project information -----------------------------------------------------
 
 project = 'trio-util'
-copyright = '2020, GROOVE X, Inc.'
+copyright = '2021, GROOVE X, Inc.'
 author = 'GROOVE X, Inc.'
 
 from trio_util import __version__ as version

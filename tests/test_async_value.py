@@ -9,7 +9,7 @@ from trio_util import AsyncValue
 from trio_util._async_value import _ValueWrapper
 
 
-async def test_value_event(nursery):
+async def test_async_value(nursery):
     async def waiter(event: AsyncValue):
         # ensure checkpoint even if condition already true
         assert event.value == 20
@@ -52,6 +52,11 @@ async def test_value_event(nursery):
     foo.value = 51
     foo.value = 0
     await wait_all_tasks_blocked()
+
+
+def test_repr():
+    foo = AsyncValue(10)
+    assert repr(foo) == 'AsyncValue(10)'
 
 
 async def test_wait_value_held_for(nursery, autojump_clock):

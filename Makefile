@@ -3,7 +3,7 @@ all: test lint type_check
 
 .PHONY: test
 test:
-	PYTHONPATH=src python -m pytest --cov=src/ --no-cov-on-fail tests/
+	PYTHONPATH=src python -m pytest --cov=src/ --no-cov-on-fail $(PYTEST_ARGS) tests/
 
 .PHONY: lint
 lint:

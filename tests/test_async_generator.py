@@ -2,12 +2,12 @@ from math import inf
 
 import trio
 
-from trio_util._trio_async_generator import trio_async_generator
+from trio_util._async_generator import async_generator
 
 # pylint: disable=not-async-context-manager
 
 
-@trio_async_generator
+@async_generator
 async def squares_in_range(start, stop, timeout=inf, max_timeout_count=1):
     timeout_count = 0
     for i in range(start, stop):

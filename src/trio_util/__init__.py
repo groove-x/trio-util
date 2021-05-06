@@ -6,7 +6,7 @@ from ._awaitables import wait_all, wait_any
 from ._compose_values import compose_values
 from ._periodic import periodic
 from ._repeated_event import RepeatedEvent
-from ._trio_async_generator import trio_async_generator
+from ._async_generator import async_generator
 
 def _metadata_fix():
     # don't do this for Sphinx case because it breaks "bysource" member ordering

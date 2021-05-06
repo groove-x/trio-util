@@ -14,11 +14,12 @@ including:
     a specific value or transition
   * `periodic` - periodic loop which accounts for its own execution
     time
-  * `@trio_async_generator` - decorator which adapts a generator containing
+  * `@async_generator` - decorator which adapts a generator containing
      Trio constructs for safe use
   * `azip`, `azip_longest` - async zip with parallel iteration
   * `RepeatedEvent` - if you really, really want to reuse an event
-  * and more (... obscure stuff you probably don't need)!
+
+Additionally supports asyncio (via anyio).
 
 See the [online documentation](https://trio-util.readthedocs.io/en/latest/) for details.
 

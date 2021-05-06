@@ -6,7 +6,7 @@ import anyio
 from async_generator import aclosing
 
 
-def trio_async_generator(wrapped):
+def async_generator(wrapped):
     """async generator pattern which supports Trio nurseries and cancel scopes
 
     Normally, it's not allowed to yield from a Trio nursery or cancel scope when
@@ -19,7 +19,7 @@ def trio_async_generator(wrapped):
 
     Synopsis::
 
-        >>> @trio_async_generator
+        >>> @async_generator
         >>> async def my_generator():
         >>>    # yield values, possibly from a nursery or cancel scope
         >>>    # ...

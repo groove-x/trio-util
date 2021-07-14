@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=test-requirements.txt setup.py test-requirements.in
 #
-astroid==2.5.2
+astroid==2.5.8
     # via pylint
 async-generator==1.10
     # via
@@ -48,7 +48,7 @@ pluggy==0.13.1
     # via pytest
 py==1.10.0
     # via pytest
-pylint==2.7.4
+pylint==3.0.0a3
     # via -r test-requirements.in
 pyparsing==2.4.7
     # via packaging

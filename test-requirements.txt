@@ -52,7 +52,7 @@ pylint==3.0.0a3
     # via -r test-requirements.in
 pyparsing==2.4.7
     # via packaging
-pytest==6.2.3
+pytest==6.2.4
     # via
     #   -r test-requirements.in
     #   pytest-cov
@@ -74,7 +74,7 @@ trio==0.18.0
     # via
     #   pytest-trio
     #   trio-util (setup.py)
-typed-ast==1.4.2
+typed-ast==1.4.3
     # via mypy
 typing-extensions==3.7.4.3
     # via mypy

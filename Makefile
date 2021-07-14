@@ -17,5 +17,7 @@ type_check:
 #   make -W test-requirements.{in,txt} PIP_COMPILE_ARGS="-U"
 # upgrade specific deps:
 #   make -W test-requirements.{in,txt} PIP_COMPILE_ARGS="-P foo"
+ifneq ($(PIP_COMPILE_ARGS),)
 test-requirements.txt: setup.py test-requirements.in
 	pip-compile -q $(PIP_COMPILE_ARGS) --output-file $@ $^
+endif

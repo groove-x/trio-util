@@ -1,4 +1,5 @@
 mypy
+pip-tools >= 5.5.0
 pylint
 pytest
 pytest-cov

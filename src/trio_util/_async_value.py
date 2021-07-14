@@ -4,6 +4,11 @@ from typing import TypeVar, Generic, AsyncIterator, Tuple, ContextManager, Calla
 
 import trio
 
+try:
+    from trio import lowlevel
+except ImportError:  # pragma: no cover
+    from trio import hazmat as lowlevel  # type: ignore
+
 from ._ref_counted_default_dict import _RefCountedDefaultDict
 
 
@@ -22,18 +27,18 @@ class _WaitQueue:
         return len(self.tasks)
 
     async def park(self):
-        task = trio.lowlevel.current_task()
+        task = lowlevel.current_task()
         self.tasks.add(task)
 
         def abort_fn(_):
             self.tasks.remove(task)
-            return trio.lowlevel.Abort.SUCCEEDED
+            return lowlevel.Abort.SUCCEEDED
 
-        await trio.lowlevel.wait_task_rescheduled(abort_fn)
+        await lowlevel.wait_task_rescheduled(abort_fn)
 
     def unpark_all(self):
         for task in self.tasks:
-            trio.lowlevel.reschedule(task)
+            lowlevel.reschedule(task)
         self.tasks.clear()
 
 

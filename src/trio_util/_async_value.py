@@ -1,12 +1,12 @@
 from contextlib import contextmanager
-from typing import TypeVar, Generic, AsyncIterator, Tuple, ContextManager, Callable
+from typing import TypeVar, Generic, AsyncIterator, Tuple, ContextManager, Callable, overload
 
 import trio
 
 try:
     from trio.lowlevel import ParkingLot as WaitQueue
 except ImportError:  # pragma: no cover
-    from trio.hazmat import ParkingLot as WaitQueue
+    from trio.hazmat import ParkingLot as WaitQueue  # type: ignore[no-redef]
 
 from ._ref_counted_default_dict import _RefCountedDefaultDict
 
@@ -20,8 +20,10 @@ def _ANY_VALUE(value):
 
 
 _NONE = object()
-VT = TypeVar('VT')
-VT_OUT = TypeVar('VT_OUT')
+T = TypeVar('T')
+T_OUT = TypeVar('T_OUT')
+P = Callable[[T], bool]
+P2 = Callable[[T, T], bool]
 
 
 class _Result:
@@ -63,7 +65,7 @@ class _ValueWrapper:
         return x == self.value
 
 
-class AsyncValue(Generic[VT]):
+class AsyncValue(Generic[T]):
     """
     Value wrapper offering the ability to wait for a value or transition.
 
@@ -120,7 +122,7 @@ class AsyncValue(Generic[VT]):
     predicates.
     """
 
-    def __init__(self, value: VT):
+    def __init__(self, value: T):
         self._value = value
         self._level_results = _RefCountedDefaultDict(_Result)
         self._edge_results = _RefCountedDefaultDict(_Result)
@@ -131,12 +133,12 @@ class AsyncValue(Generic[VT]):
         return f"{self.__class__.__name__}({self.value})"
 
     @property
-    def value(self) -> VT:
+    def value(self) -> T:
         """The wrapped value"""
         return self._value
 
     @value.setter
-    def value(self, x: VT):
+    def value(self, x: T):
         if self._value != x:
             old = self._value
             new = self._value = x
@@ -157,7 +159,11 @@ class AsyncValue(Generic[VT]):
             await result.event.park()
         return result.value
 
-    async def wait_value(self, value_or_predicate, *, held_for=0) -> VT:
+    @overload
+    async def wait_value(self, value: T, *, held_for=0.) -> T: ...
+    @overload
+    async def wait_value(self, predicate: P, *, held_for=0.) -> T: ...
+    async def wait_value(self, value_or_predicate, *, held_for=0.):
         """
         Wait until given predicate f(value) is True.
 
@@ -187,7 +193,13 @@ class AsyncValue(Generic[VT]):
             break
         return value
 
-    async def eventual_values(self, value_or_predicate=_ANY_VALUE) -> AsyncIterator[VT]:
+    # NOTE: `async` qualifier on an async iteratable overload doesn't work
+    # https://github.com/python/mypy/issues/10301
+    @overload
+    def eventual_values(self, value: T) -> AsyncIterator[T]: ...
+    @overload
+    def eventual_values(self, predicate: P = _ANY_VALUE) -> AsyncIterator[T]: ...
+    async def eventual_values(self, value_or_predicate=_ANY_VALUE):
         """
         Yield values matching the predicate with eventual consistency
 
@@ -217,7 +229,11 @@ class AsyncValue(Generic[VT]):
                     await not_last_value.event.park()
 
     # TODO: implement wait_transition() using transitions()
-    async def wait_transition(self, value_or_predicate=_ANY_TRANSITION) -> Tuple[VT, VT]:
+    @overload
+    async def wait_transition(self, value: T) -> Tuple[T, T]: ...
+    @overload
+    async def wait_transition(self, predicate: P2 = _ANY_TRANSITION) -> Tuple[T, T]: ...
+    async def wait_transition(self, value_or_predicate=_ANY_TRANSITION):
         """
         Wait until given predicate f(value, old_value) is True.
 
@@ -236,7 +252,11 @@ class AsyncValue(Generic[VT]):
         """
         return await self._wait_predicate(self._edge_results, _ValueWrapper(value_or_predicate))
 
-    async def transitions(self, value_or_predicate=_ANY_TRANSITION) -> AsyncIterator[Tuple[VT, VT]]:
+    @overload
+    def transitions(self, value: T) -> AsyncIterator[Tuple[T, T]]: ...
+    @overload
+    def transitions(self, predicate: P2 = _ANY_TRANSITION) -> AsyncIterator[Tuple[T, T]]: ...
+    async def transitions(self, value_or_predicate=_ANY_TRANSITION):
         """
         Yield (value, old_value) for transitions matching the predicate
 
@@ -268,8 +288,8 @@ class AsyncValue(Generic[VT]):
                 yield result.value
 
     # TODO: make the output's `value` read-only somehow
-    def open_transform(self, function: Callable[[VT], VT_OUT]) \
-            -> ContextManager['AsyncValue[VT_OUT]']:
+    def open_transform(self, function: Callable[[T], T_OUT]) \
+            -> ContextManager['AsyncValue[T_OUT]']:
         """Yield a derived AsyncValue with the given transform applied
 
         Synopsis::

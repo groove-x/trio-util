@@ -2,7 +2,9 @@
 
 ## trio-util (pending)
 ### Added
-- `AsyncValue` now has type hints and generic typing
+- `AsyncValue` and `compose_values()` now have type hints and generic typing
+### Changed
+- `_transform_` parameter of `compose_values()` is now keyword only
 
 ## trio-util 0.5.0 (2021-04-06)
 ⚠ includes breaking changes!

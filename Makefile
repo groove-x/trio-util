@@ -11,7 +11,7 @@ lint:
 
 .PHONY: type_check
 type_check:
-	PYTHONPATH=src mypy --ignore-missing-imports src/ tests/
+	PYTHONPATH=src mypy --show-error-codes --ignore-missing-imports src/ tests/
 
 # upgrade all deps:
 #   make -W test-requirements.{in,txt} PIP_COMPILE_ARGS="-U"

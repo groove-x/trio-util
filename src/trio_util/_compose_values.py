@@ -1,7 +1,7 @@
 from collections import namedtuple
 from contextlib import contextmanager, ExitStack
 from functools import partial
-from typing import ContextManager, Optional, Callable, Any
+from typing import ContextManager, Callable, Any, TypeVar, overload
 
 from ._async_value import AsyncValue
 
@@ -10,9 +10,15 @@ def _IDENTITY(x):
     return x
 
 
-# TODO: more specific output type, perhaps using @overload
-def compose_values(_transform_: Optional[Callable[[Any], Any]] = None,
-                   **value_map: AsyncValue) -> ContextManager[AsyncValue]:
+T_OUT = TypeVar('T_OUT')
+
+
+@overload
+def compose_values(**value_map: AsyncValue) -> ContextManager[AsyncValue]: ...
+@overload
+def compose_values(*, _transform_: Callable[[Any], T_OUT],
+                   **value_map: AsyncValue) -> ContextManager[AsyncValue[T_OUT]]: ...
+def compose_values(*, _transform_=None, **value_map):
     """Context manager providing a composite of multiple AsyncValues
 
     The composite object itself is an AsyncValue, with the `value` of each

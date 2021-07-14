@@ -5,7 +5,7 @@ from trio_util import defer_to_cancelled, multi_error_defer_to
 
 
 def _cancelled():
-    return trio.Cancelled._create()
+    return trio.Cancelled._create()  # type: ignore[attr-defined]
 
 
 class MyExceptionBase(Exception):

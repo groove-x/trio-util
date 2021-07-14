@@ -1,3 +1,4 @@
+# pylint: disable=line-too-long,multiple-statements
 from contextlib import contextmanager
 from typing import TypeVar, Generic, AsyncIterator, Tuple, ContextManager, Callable, overload
 
@@ -218,12 +219,13 @@ class AsyncValue(Generic[T]):
             break
         return value
 
-    # NOTE: `async` qualifier on an async iteratable overload doesn't work
+    # NOTE: it's hard to make both type check and lint happy with generator overloads
     # https://github.com/python/mypy/issues/10301
+    # https://github.com/PyCQA/astroid/issues/1015
     @overload
-    def eventual_values(self, value: T) -> AsyncIterator[T]: ...
+    async def eventual_values(self, value: T) -> AsyncIterator[T]: yield self._value
     @overload
-    def eventual_values(self, predicate: P = _ANY_VALUE) -> AsyncIterator[T]: ...
+    async def eventual_values(self, predicate: P = _ANY_VALUE) -> AsyncIterator[T]: yield self._value
     async def eventual_values(self, value_or_predicate=_ANY_VALUE):
         """
         Yield values matching the predicate with eventual consistency
@@ -278,9 +280,9 @@ class AsyncValue(Generic[T]):
         return await self._wait_predicate(self._edge_results, _ValueWrapper(value_or_predicate))
 
     @overload
-    def transitions(self, value: T) -> AsyncIterator[Tuple[T, T]]: ...
+    async def transitions(self, value: T) -> AsyncIterator[Tuple[T, T]]: yield (self._value, self._value)
     @overload
-    def transitions(self, predicate: P2 = _ANY_TRANSITION) -> AsyncIterator[Tuple[T, T]]: ...
+    async def transitions(self, predicate: P2 = _ANY_TRANSITION) -> AsyncIterator[Tuple[T, T]]: yield (self._value, self._value)
     async def transitions(self, value_or_predicate=_ANY_TRANSITION):
         """
         Yield (value, old_value) for transitions matching the predicate

@@ -26,6 +26,12 @@ or wait until both events are set::
 .. autofunction:: wait_any
 .. autofunction:: wait_all
 
+In the spirit of Trio's `move_on_after()` cancel scope utility, `move_on_when()`
+represents a block of async code that can be interrupted by any async event.
+
+.. autofunction:: move_on_when
+    :async-with: cancel_scope
+
 value wrappers
 --------------
 :class:`AsyncValue` can wrap any type, offering the ability to wait for a

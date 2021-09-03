@@ -48,7 +48,7 @@ long-running code::
 
 By writing the long-running code as a separate function rather than inline,
 we're interfering with the natural flow of control (can't write to local vars
-or use ``continue`` / ``break`` / ``return`` in the context of ``foo()``.  For
+or use ``continue`` / ``break`` / ``return`` in the context of ``foo()``).  For
 this we have something better: :func:`move_on_when()`.
 
 In the spirit of Trio's :func:`move_on_after()` cancel scope utility,

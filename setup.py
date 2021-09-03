@@ -15,7 +15,7 @@ setup(
     long_description='''
 An assortment of utilities for the Trio async/await framework, including:
 
-  * wait_any, wait_all - avoid nursery blocks for simple cases
+  * wait_any, wait_all, move_on_when - avoid nursery blocks for simple cases
   * AsyncBool, AsyncValue - value wrappers with the ability to wait for
     a specific value or transition
   * periodic - periodic loop which accounts for its own execution

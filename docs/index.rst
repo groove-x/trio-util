@@ -26,6 +26,50 @@ or wait until both events are set::
 .. autofunction:: wait_any
 .. autofunction:: wait_all
 
+It may be tempting to use :func:`wait_any` where you have some long-running,
+async code that should be interrupted by an event.  In the context of a function
+scope, you would likely structure it by defining a local function for the
+long-running code::
+
+    async def foo():
+        # NOT recommended
+        async def _my_endless_task():
+            while True:
+                await trio.sleep(5)
+                if some_condition:
+                    counter += 1  # bug (missing `nonlocal` definition)
+                elif other_condition:
+                    return  # maybe-bug: you intended to exit `foo()`?
+
+        counter = 0
+        # run the endless async loop until some_event triggers
+        await wait_any(_my_endless_task, some_event.wait)
+        if counter > 10: ...
+
+By writing the long-running code as a separate function rather than inline,
+we're interfering with the natural flow of control (can't write to local vars
+or use ``continue`` / ``break`` / ``return`` in the context of ``foo()``.  For
+this we have something better: :func:`move_on_when()`.
+
+In the spirit of Trio's :func:`move_on_after()` cancel scope utility,
+:func:`move_on_when()` represents a block of async code that can be interrupted
+by any async event.  By letting the primary "task" be written inline, the code
+has access to everything wonderful about ``foo()``'s local scope::
+
+    async def foo():
+        counter = 0
+        async with move_on_when(some_event.wait):
+            while True:
+                await trio.sleep(5)
+                if some_condition:
+                    counter += 1
+                elif other_condition:
+                    return
+        if counter > 10: ...
+
+.. autofunction:: move_on_when
+    :async-with: cancel_scope
+
 value wrappers
 --------------
 :class:`AsyncValue` can wrap any type, offering the ability to wait for a

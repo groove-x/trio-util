@@ -2,9 +2,11 @@
 
 ## trio-util (pending)
 ### Added
-- `AsyncValue` and `compose_values()` now have type hints and generic typing
+- `AsyncValue` and `compose_values()` now have type hints and generic typing.
+- `move_on_when()` is a cancel scope that exits when a given async callable
+  returns.
 ### Changed
-- `_transform_` parameter of `compose_values()` is now keyword only
+- `_transform_` parameter of `compose_values()` is now keyword-only.
 ### Fixed
 - slight performance improvement to `AsyncValue.value` setter when there is a
   predicate match.

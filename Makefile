@@ -13,6 +13,8 @@ lint:
 type_check:
 	PYTHONPATH=src mypy --show-error-codes --ignore-missing-imports src/ tests/
 
+# explicitly update .txt after changing .in:
+#   make -W test-requirements.{in,txt} PIP_COMPILE_ARGS="-q"
 # upgrade all deps:
 #   make -W test-requirements.{in,txt} PIP_COMPILE_ARGS="-U"
 # upgrade specific deps:

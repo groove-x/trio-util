@@ -1,6 +1,6 @@
 # Release history
 
-## trio-util (pending)
+## trio-util 0.6.0 (2021-09-05)
 ### Added
 - `AsyncValue` and `compose_values()` now have type hints and generic typing.
 - `move_on_when()` is a cancel scope that exits when a given async callable

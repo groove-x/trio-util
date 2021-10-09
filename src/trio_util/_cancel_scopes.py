@@ -24,9 +24,9 @@ async def move_on_when(fn: Callable[..., Awaitable],
     """
 
     async with trio.open_nursery() as nursery:
-        cancel_scope = nursery.cancel_scope
-        nursery.start_soon(_wait_and_call,
-                           partial(fn, *args, **kwargs),
-                           cancel_scope.cancel)
-        yield cancel_scope
-        cancel_scope.cancel()
+        with trio.CancelScope() as cancel_scope:
+            nursery.start_soon(_wait_and_call,
+                               partial(fn, *args, **kwargs),
+                               cancel_scope.cancel)
+            yield cancel_scope
+        nursery.cancel_scope.cancel()

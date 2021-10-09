@@ -70,6 +70,12 @@ has access to everything wonderful about ``foo()``'s local scope::
 .. autofunction:: move_on_when
     :async-with: cancel_scope
 
+:func:`run_and_cancelling`, on the other hand, is a context manager
+that runs a background task that is not able to interrupt your block of code.
+At the end of the block, the background task is cancelled if necessary.
+
+.. autofunction:: run_and_cancelling
+
 value wrappers
 --------------
 :class:`AsyncValue` can wrap any type, offering the ability to wait for a

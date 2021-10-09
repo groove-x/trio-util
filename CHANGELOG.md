@@ -4,6 +4,8 @@
 ### Added
 - `iter_move_on_after()` and `iter_fail_after()` are iterator wrappers
   that apply a timeout to a single iteration.
+- `run_and_cancelling()` is a context manager that runs a background
+  task and cancels it on exit of the block.
 - `AsyncValue.eventual_values()` supports a `held_for` option.
 ### Fixed
 - `move_on_when()` now returns a cancel scope other than the implementation's

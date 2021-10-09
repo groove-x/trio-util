@@ -182,18 +182,28 @@ def _odd(v):
     return v & 1 == 1
 
 
-@pytest.mark.parametrize('predicate, consume_duration, publish_durations, expected_values', [
+@pytest.mark.parametrize('predicate, held_for, consume_duration, '
+                         'publish_durations, expected_values', [
     # fast consumer
-    (None,  0.0, [.1] * 3, [0, 1, 2, 3]),
-    (_even, 0.0, [.1] * 6, [0, 2, 4, 6]),
-    (_odd,  0.0, [.1] * 6, [1, 3, 5]),  # (initial value doesn't match)
+    (None,  0, 0.0, [.1] * 3, [0, 1, 2, 3]),
+    (_even, 0, 0.0, [.1] * 6, [0, 2, 4, 6]),
+    (_odd,  0, 0.0, [.1] * 6, [1, 3, 5]),  # (initial value doesn't match)
     # consumer is a little slower (1s vs .9s), but no lost value
-    (None,  1.0, [.9] * 3, [0, 1, 2, 3]),
+    (None,  0, 1.0, [.9] * 3, [0, 1, 2, 3]),
     # slow consumer misses a change
-    (None,  1.0, [.4] * 3, [0, 2, 3]),
+    (None,  0, 1.0, [.4] * 3, [0, 2, 3]),
+
+    # held_for
+    # NOTE: the test harness waits indefinitely for the last expected value
+    (_even, 0.5, 0.0, [.9] * 6, [0, 2, 4, 6]),
+    (_even, 0.5, 0.0, [.4] * 2 + [.9] * 4, [2, 4, 6]),
+    (_even, 0.5, 0.0, [.4, .9] * 3, [6]),
+    (_even, 0.5, 0.0, [.9, .4] * 3, [0, 2, 4, 6]),
 ])
-async def test_eventual_values(predicate, consume_duration, publish_durations, expected_values,
+async def test_eventual_values(predicate, held_for,
+                               consume_duration, publish_durations, expected_values,
                                nursery, autojump_clock):
+    assert held_for == 0 or predicate is not None
     expected_values = expected_values[:]
     x = AsyncValue(0)  # publisher uses sequence [0, 1, 2, ...]
     done_event = trio.Event()
@@ -201,8 +211,9 @@ async def test_eventual_values(predicate, consume_duration, publish_durations, e
     @nursery.start_soon
     async def _consumer():
         iterator = x.eventual_values() if predicate is None \
-                else x.eventual_values(predicate)
+                else x.eventual_values(predicate, held_for=held_for)
         async for val in iterator:
+            assert expected_values, f'unexpected additional value: {val}'
             assert val == expected_values.pop(0)
             if consume_duration is not None:
                 await trio.sleep(consume_duration)

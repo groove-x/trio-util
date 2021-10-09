@@ -228,10 +228,10 @@ class AsyncValue(Generic[T]):
     # https://github.com/python/mypy/issues/10301
     # https://github.com/PyCQA/astroid/issues/1015
     @overload
-    async def eventual_values(self, value: T) -> AsyncIterator[T]: yield self._value
+    async def eventual_values(self, value: T, held_for=0.) -> AsyncIterator[T]: yield self._value
     @overload
-    async def eventual_values(self, predicate: P = _ANY_VALUE) -> AsyncIterator[T]: yield self._value
-    async def eventual_values(self, value_or_predicate=_ANY_VALUE):
+    async def eventual_values(self, predicate: P = _ANY_VALUE, held_for=0.) -> AsyncIterator[T]: yield self._value
+    async def eventual_values(self, value_or_predicate=_ANY_VALUE, held_for=0.):
         """
         Yield values matching the predicate with eventual consistency
 
@@ -245,17 +245,24 @@ class AsyncValue(Generic[T]):
 
         If a non-callable is provided, it's equivalent to a predicate matching
         the given value.
+
+        If held_for > 0, the predicate must match for that duration.
         """
         predicate = _ValueWrapper(value_or_predicate)
         last_value = self._value
         with self._level_results.open_ref(predicate) as result, \
-                self._level_results.open_ref(lambda v: v != last_value) as not_last_value:
+                self._level_results.open_ref(lambda v: v != last_value) as not_last_value, \
+                self._level_results.open_ref(lambda v: not predicate(v)) as not_predicate:
             while True:
                 if predicate(self._value):
                     last_value = self._value
                 else:
                     await result.event.park()
                     last_value = result.value
+                if held_for > 0:
+                    with trio.move_on_after(held_for):
+                        await not_predicate.event.park()
+                        continue
                 yield last_value
                 if self._value == last_value:
                     await not_last_value.event.park()

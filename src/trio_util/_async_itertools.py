@@ -24,10 +24,10 @@ async def _azip(*aiterables, fillvalue, stop_any):
 
 
 def azip(*aiterables):
-    """async version of izip with parallel iteration"""
+    """async version of zip() with parallel iteration"""
     return _azip(*aiterables, fillvalue=None, stop_any=True)
 
 
 def azip_longest(*aiterables, fillvalue=None):
-    """async version of izip_longest with parallel iteration"""
+    """async version of zip_longest() with parallel iteration"""
     return _azip(*aiterables, fillvalue=fillvalue, stop_any=False)

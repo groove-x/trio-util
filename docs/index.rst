@@ -155,6 +155,18 @@ generators
 
 iterators
 ---------
+When working with an asynchronous iterator, you may want to cancel iteration or
+raise an error when a single iteration takes too long.  :func:`iter_move_on_after`
+and :func:`iter_fail_after` can wrap an iterator to provide this.
+
+.. autofunction:: iter_move_on_after
+    :async:
+.. autofunction:: iter_fail_after
+    :async:
+
+:func:`azip` and :func:`azip_longest` are async equivalents of :func:`zip`
+and :func:`itertools.zip_longest`.
+
 .. autofunction:: azip
     :async:
 .. autofunction:: azip_longest

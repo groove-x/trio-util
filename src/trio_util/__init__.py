@@ -6,6 +6,7 @@ from ._awaitables import wait_all, wait_any
 from ._cancel_scopes import move_on_when
 from ._compose_values import compose_values
 from ._exceptions import defer_to_cancelled, multi_error_defer_to
+from ._iterators import iter_fail_after, iter_move_on_after
 from ._periodic import periodic
 from ._repeated_event import RepeatedEvent
 from ._task_stats import TaskStats

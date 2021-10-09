@@ -1,5 +1,10 @@
 # Release history
 
+## trio-util (pending)
+### Added
+- `iter_move_on_after()` and `iter_fail_after()` are iterator wrappers
+  that apply a timeout to a single iteration.
+
 ## trio-util 0.6.0 (2021-09-05)
 ### Added
 - `AsyncValue` and `compose_values()` now have type hints and generic typing.

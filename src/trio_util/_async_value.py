@@ -23,9 +23,6 @@ class _WaitQueue:
     def __init__(self):
         self.tasks = set()
 
-    def __len__(self):
-        return len(self.tasks)
-
     async def park(self):
         task = lowlevel.current_task()
         self.tasks.add(task)

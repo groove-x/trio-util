@@ -1,5 +1,5 @@
 mock  # for AsyncMock
-mypy
+mypy >= 0.942
 pip-tools >= 5.5.0
 pylint
 pytest

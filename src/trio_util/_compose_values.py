@@ -71,7 +71,7 @@ def _compose_values(_transform_, value_map):
     async_vals = value_map.values()
     if not (async_vals and all(isinstance(av, AsyncValue) for av in async_vals)):
         raise TypeError('expected instances of AsyncValue')
-    value_type = namedtuple('CompositeValue', value_map.keys())
+    value_type = namedtuple('CompositeValue', value_map.keys())  # type: ignore[misc]
     composite_value = value_type._make(av.value for av in async_vals)
     composite = AsyncValue(transform(composite_value))
 

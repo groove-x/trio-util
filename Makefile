@@ -11,7 +11,7 @@ lint:
 
 .PHONY: type_check
 type_check:
-	PYTHONPATH=src mypy --show-error-codes --ignore-missing-imports src/ tests/
+	PYTHONPATH=src mypy --show-error-codes --check-untyped-defs --ignore-missing-imports src/ tests/
 
 # explicitly update .txt after changing .in:
 #   make -W test-requirements.{in,txt} PIP_COMPILE_ARGS="-q"

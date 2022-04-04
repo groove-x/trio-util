@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Optional
 from unittest.mock import Mock
 
 import pytest
@@ -29,7 +30,7 @@ async def test_async_value(nursery):
         assert event.value == 0
         print('#5')
 
-    foo = AsyncValue(10)
+    foo: AsyncValue[Optional[int]] = AsyncValue(10)
     assert foo.value == 10
     foo.value = 20
     assert foo.value == 20

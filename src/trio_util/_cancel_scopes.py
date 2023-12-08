@@ -1,15 +1,19 @@
 from contextlib import asynccontextmanager
 from functools import partial
-from typing import Awaitable, Callable, AsyncIterator
+from typing import Awaitable, Callable, AsyncGenerator, NoReturn, TYPE_CHECKING
 
 import trio
 
 from ._awaitables import _wait_and_call
 
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec
+    Args = ParamSpec("Args")
+
 
 @asynccontextmanager
-async def move_on_when(fn: Callable[..., Awaitable],
-                       *args, **kwargs) -> AsyncIterator[trio.CancelScope]:
+async def move_on_when(fn: Callable['Args', Awaitable[object]],
+                       *args: 'Args.args', **kwargs: 'Args.kwargs') -> AsyncGenerator[trio.CancelScope, NoReturn]:
     """Async context manager that exits if async fn(*args, **kwargs) returns.
 
     The context manager yields a trio.CancelScope.
@@ -33,8 +37,8 @@ async def move_on_when(fn: Callable[..., Awaitable],
 
 
 @asynccontextmanager
-async def run_and_cancelling(fn: Callable[..., Awaitable],
-                             *args, **kwargs) -> AsyncIterator[None]:
+async def run_and_cancelling(fn: Callable['Args', Awaitable[object]],
+                       *args: 'Args.args', **kwargs: 'Args.kwargs') -> AsyncGenerator[None, NoReturn]:
     """Async context manager that runs async fn(*args, **kwargs) and cancels it at block exit.
 
     Synopsis::

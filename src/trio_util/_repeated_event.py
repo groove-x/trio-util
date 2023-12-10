@@ -1,3 +1,5 @@
+from typing import AsyncIterator
+
 from ._async_value import AsyncValue
 
 
@@ -11,19 +13,19 @@ class RepeatedEvent:
           previous one, but receiving the latest event is ensured
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._event = AsyncValue(0)
 
-    def set(self):
+    def set(self) -> None:
         """Trigger an event"""
         self._event.value += 1
 
-    async def wait(self):
+    async def wait(self) -> None:
         """Wait for the next event"""
         token = self._event.value
         await self._event.wait_value(lambda val: val > token)
 
-    async def unqueued_events(self):
+    async def unqueued_events(self) -> AsyncIterator[None]:
         """Unqueued event iterator
 
         The listener will miss an event if it's blocked processing the previous
@@ -54,7 +56,7 @@ class RepeatedEvent:
         async for _ in self._event.transitions():
             yield
 
-    async def events(self, *, repeat_last=False):
+    async def events(self, *, repeat_last: bool = False) -> AsyncIterator[None]:
         """Event iterator with eventual consistency
 
         Use this iterator to coordinate some work whenever a collection

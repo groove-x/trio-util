@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from typing import Callable, DefaultDict, Dict, List, Optional
 
 import trio
 
@@ -15,8 +16,12 @@ class TaskStats(trio.abc.Instrument):
     rate.
     """
     # TODO: auto thresholds (e.g. > 98th percentile)
-    def __init__(self, *, slow_task_threshold=.01, high_rate_task_threshold=100,
-                 current_time=trio.current_time):
+    def __init__(
+        self, *,
+        slow_task_threshold: float = 0.01,
+        high_rate_task_threshold: float = 100.0,
+        current_time: Callable[[], float] = trio.current_time,
+    ) -> None:
         """
         :param slow_task_threshold: tasks with steps higher than this duration
             (seconds) are reported
@@ -28,15 +33,15 @@ class TaskStats(trio.abc.Instrument):
         self.slow_task_threshold = slow_task_threshold
         self.high_rate_task_threshold = high_rate_task_threshold
         self.current_time = current_time
-        self.scheduled_start = {}  # task: start_time
-        self.max_wait = 0
-        self.task_step_start = None
-        self.slow_task_steps = defaultdict(list)  # name: dt_list
-        self.schedule_counts = defaultdict(int)  # name: count
-        self.rate_start = 0
-        self.high_schedule_rates = defaultdict(float)  # name: max_rate
+        self.scheduled_start: Dict[trio.lowlevel.Task, float] = {}  # task: start_time
+        self.max_wait = 0.0
+        self.task_step_start: Optional[float] = None
+        self.slow_task_steps: DefaultDict[str, List[float]] = defaultdict(list)  # name: dt_list
+        self.schedule_counts: DefaultDict[str, int] = defaultdict(int)  # name: count
+        self.rate_start = 0.0
+        self.high_schedule_rates: DefaultDict[str, float] = defaultdict(float)  # name: max_rate
 
-    def task_scheduled(self, task):
+    def task_scheduled(self, task: trio.lowlevel.Task) -> None:
         t = self.current_time()
         self.scheduled_start[task] = t
         if t - self.rate_start > RATE_MEASURE_PERIOD:
@@ -48,7 +53,7 @@ class TaskStats(trio.abc.Instrument):
             self.schedule_counts.clear()
         self.schedule_counts[task.name] += 1
 
-    def before_task_step(self, task):
+    def before_task_step(self, task: trio.lowlevel.Task) -> None:
         t = self.current_time()
         start = self.scheduled_start.pop(task, None)
         if start:
@@ -56,7 +61,7 @@ class TaskStats(trio.abc.Instrument):
             self.max_wait = max(self.max_wait, dt)
             self.task_step_start = t
 
-    def after_task_step(self, task):
+    def after_task_step(self, task: trio.lowlevel.Task) -> None:
         start = self.task_step_start
         if start:
             dt = self.current_time() - start
@@ -64,7 +69,7 @@ class TaskStats(trio.abc.Instrument):
                 self.slow_task_steps[task.name].append(dt)
             self.task_step_start = None
 
-    def after_run(self):
+    def after_run(self) -> None:
         logger.info(f'max task wait time: {self.max_wait * 1000:.2f} ms')
         if self.slow_task_steps:
             text = [f'slow task step events (> {self.slow_task_threshold * 1000:.0f} ms):']

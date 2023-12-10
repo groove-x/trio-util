@@ -12,8 +12,10 @@ if TYPE_CHECKING:
 
 
 @asynccontextmanager
-async def move_on_when(fn: Callable['Args', Awaitable[object]],
-                       *args: 'Args.args', **kwargs: 'Args.kwargs') -> AsyncGenerator[trio.CancelScope, NoReturn]:
+async def move_on_when(
+    fn: 'Callable[Args, Awaitable[object]]',
+    *args: 'Args.args', **kwargs: 'Args.kwargs',
+) -> AsyncGenerator[trio.CancelScope, None]:
     """Async context manager that exits if async fn(*args, **kwargs) returns.
 
     The context manager yields a trio.CancelScope.
@@ -37,8 +39,10 @@ async def move_on_when(fn: Callable['Args', Awaitable[object]],
 
 
 @asynccontextmanager
-async def run_and_cancelling(fn: Callable['Args', Awaitable[object]],
-                       *args: 'Args.args', **kwargs: 'Args.kwargs') -> AsyncGenerator[None, NoReturn]:
+async def run_and_cancelling(
+    fn: 'Callable[Args, Awaitable[object]]',
+    *args: 'Args.args', **kwargs: 'Args.kwargs',
+) -> AsyncGenerator[None, None]:
     """Async context manager that runs async fn(*args, **kwargs) and cancels it at block exit.
 
     Synopsis::

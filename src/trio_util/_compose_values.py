@@ -1,24 +1,35 @@
 from collections import namedtuple
 from contextlib import contextmanager, ExitStack
 from functools import partial
-from typing import ContextManager, Callable, Any, TypeVar, overload
+from typing import (
+    ContextManager, Callable, Any, Dict, Iterator, NoReturn, Optional, TypeVar,
+    Union, overload,
+)
 
 from ._async_value import AsyncValue
 
+T_OUT = TypeVar('T_OUT')
+T = TypeVar('T')
 
-def _IDENTITY(x):
+
+def _IDENTITY(x: T) -> T:
     return x
 
 
-T_OUT = TypeVar('T_OUT')
-
-
 @overload
-def compose_values(**value_map: AsyncValue) -> ContextManager[AsyncValue]: ...
+def compose_values(
+    *, _transform_: None = None,
+    **value_map: AsyncValue[T],
+) -> ContextManager[AsyncValue[T]]: ...
 @overload
-def compose_values(*, _transform_: Callable[[Any], T_OUT],
-                   **value_map: AsyncValue) -> ContextManager[AsyncValue[T_OUT]]: ...
-def compose_values(*, _transform_=None, **value_map):
+def compose_values(
+    *, _transform_: Callable[[T], T_OUT],
+    **value_map: AsyncValue[T],
+) -> ContextManager[AsyncValue[T_OUT]]: ...
+def compose_values(
+    *, _transform_: Optional[Callable[[T], T_OUT]] = None,
+    **value_map: AsyncValue[T],
+) -> ContextManager[AsyncValue[Any]]:
     """Context manager providing a composite of multiple AsyncValues
 
     The composite object itself is an AsyncValue, with the `value` of each
@@ -66,18 +77,21 @@ def compose_values(*, _transform_=None, **value_map):
 
 
 @contextmanager
-def _compose_values(_transform_, value_map):
-    transform = _transform_ or _IDENTITY
+def _compose_values(
+    _transform_: Optional[Callable[[T], T_OUT]],
+    value_map: Dict[str, AsyncValue[T]],
+) -> Iterator[Union[AsyncValue[T], AsyncValue[T_OUT]]]:
+    transform: Callable[[T], T_OUT] = _transform_ or _IDENTITY  # type: ignore[assignment]
     async_vals = value_map.values()
     if not (async_vals and all(isinstance(av, AsyncValue) for av in async_vals)):
         raise TypeError('expected instances of AsyncValue')
     value_type = namedtuple('CompositeValue', value_map.keys())  # type: ignore[misc]
-    composite_value = value_type._make(av.value for av in async_vals)
+    composite_value: Any = value_type._make(av.value for av in async_vals)
     composite = AsyncValue(transform(composite_value))
 
     # This dummy wait_value() predicate hooks into each value and updates
     # the composite as a side effect.
-    def _update_composite(name, val):
+    def _update_composite(name: str, val: T) -> bool:
         nonlocal composite_value
         composite_value = composite_value._replace(**{name: val})
         composite.value = transform(composite_value)

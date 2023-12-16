@@ -1,12 +1,24 @@
 import functools
 import sys
 from contextlib import asynccontextmanager
+from typing import (
+    AsyncContextManager, AsyncGenerator, AsyncIterator, Callable, TYPE_CHECKING,
+    TypeVar,
+)
 
 import trio
 from async_generator import aclosing
 
 
-def trio_async_generator(wrapped):
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec
+    ArgsT = ParamSpec("ArgsT")
+YieldT = TypeVar("YieldT")
+
+
+def trio_async_generator(
+    wrapped: 'Callable[ArgsT, AsyncGenerator[YieldT, None]]',
+) -> 'Callable[ArgsT, AsyncContextManager[AsyncIterator[YieldT]]]':
     """async generator pattern which supports Trio nurseries and cancel scopes
 
     Normally, it's not allowed to yield from a Trio nursery or cancel scope when
@@ -39,10 +51,12 @@ def trio_async_generator(wrapped):
     """
     @asynccontextmanager
     @functools.wraps(wrapped)
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args: 'ArgsT.args', **kwargs: 'ArgsT.kwargs') -> AsyncGenerator[AsyncIterator[YieldT], None]:
+        send_channel: trio.MemorySendChannel[YieldT]
+        receive_channel: trio.MemoryReceiveChannel[YieldT]
         send_channel, receive_channel = trio.open_memory_channel(0)
         async with trio.open_nursery() as nursery:
-            async def adapter():
+            async def adapter() -> None:
                 async with send_channel, aclosing(wrapped(*args, **kwargs)) as agen:
                     while True:
                         try:

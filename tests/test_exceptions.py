@@ -3,7 +3,7 @@ import sys
 import pytest
 import trio
 
-from trio_util import defer_to_cancelled, exceptgroup_defer_to
+from trio_util import defer_to_cancelled, multi_error_defer_to, exceptgroup_defer_to
 
 if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup, BaseExceptionGroup
@@ -128,17 +128,28 @@ async def test_exceptgroup_defer_to(context, to_raise, expected_exception):
             raise to_raise
 
 
-async def test_multi_error_defer_simple_cancel():
+async def test_exceptgroup_defer_simple_cancel():
     with trio.move_on_after(1) as cancel_scope:
         with exceptgroup_defer_to(trio.Cancelled, ValueError):
             cancel_scope.cancel()
             await trio.sleep(0)
 
 
-async def test_multi_error_defer_decorating_async():
+async def test_exceptgroup_defer_decorating_async():
     @exceptgroup_defer_to(trio.Cancelled, ValueError)
     async def foo():
         raise BaseExceptionGroup('', [_cancelled(), ValueError()])
 
     with pytest.raises(trio.Cancelled):
         await foo()
+
+
+def test_multierror_defer_warns():
+    with pytest.warns(
+        DeprecationWarning,
+        match=r'^multi_error_defer_to\(\) is deprecated, use exceptgroup_defer_to\(\) instead\.$',
+    ):
+        cm = multi_error_defer_to(KeyError, ValueError)
+    with pytest.raises(KeyError, match='test'):
+        with cm:
+            raise BaseExceptionGroup('', [ValueError('discarded'), KeyError('test')])

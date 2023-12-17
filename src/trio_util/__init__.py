@@ -5,7 +5,7 @@ from ._async_value import AsyncValue
 from ._awaitables import wait_all, wait_any
 from ._cancel_scopes import move_on_when, run_and_cancelling
 from ._compose_values import compose_values
-from ._exceptions import defer_to_cancelled, multi_error_defer_to
+from ._exceptions import defer_to_cancelled, exceptgroup_defer_to, multi_error_defer_to
 from ._iterators import iter_fail_after, iter_move_on_after
 from ._periodic import periodic
 from ._repeated_event import RepeatedEvent

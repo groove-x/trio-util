@@ -68,21 +68,21 @@ def defer_to_cancelled(*args: Type[Exception]):
                 # handle API exception (unless Cancelled raised simultaneously)
                 ...
     """
-    return multi_error_defer_to(trio.Cancelled, *args)
+    return exceptgroup_defer_to(trio.Cancelled, *args)
 
 
 @_async_friendly_contextmanager
-def multi_error_defer_to(*privileged_types: Type[BaseException],
-                         propagate_multi_error=True,
+def exceptgroup_defer_to(*privileged_types: Type[BaseException],
+                         propagate_exc_group=True,
                          strict=True):
     """
-    Defer a trio.MultiError exception to a single, privileged exception
+    Defer an ExceptionGroup exception to a single, privileged exception
 
-    In the scope of this context manager, a raised MultiError will be coalesced
+    In the scope of this context manager, a raised ExceptionGroup will be coalesced
     into a single exception with the highest privilege if the following
     criteria is met:
 
-        1. every exception in the MultiError is an instance of one of the given
+        1. every exception in the ExceptionGroup is an instance of one of the given
            privileged types
 
     additionally, by default with strict=True:
@@ -91,33 +91,33 @@ def multi_error_defer_to(*privileged_types: Type[BaseException],
            the exceptions by repr().  For example, this test fails if both
            ValueError('foo') and ValueError('bar') are the most privileged.
 
-    If the criteria are not met, by default the original MultiError is
+    If the criteria are not met, by default the original ExceptionGroup is
     propagated.  Use propagate_multi_error=False to instead raise a
     RuntimeError in these cases.
 
     Examples::
 
-        multi_error_defer_to(trio.Cancelled, MyException)
-            MultiError([Cancelled(), MyException()]) -> Cancelled()
-            MultiError([Cancelled(), MyException(),
-                        MultiError([Cancelled(), Cancelled())]]) -> Cancelled()
-            MultiError([Cancelled(), MyException(), ValueError()]) -> *no change*
-            MultiError([MyException('foo'), MyException('foo')]) -> MyException('foo')
-            MultiError([MyException('foo'), MyException('bar')]) -> *no change*
+        exceptgroup_defer_to(trio.Cancelled, MyException)
+            ExceptionGroup([Cancelled(), MyException()]) -> Cancelled()
+            ExceptionGroup([Cancelled(), MyException(),
+                        ExceptionGroup([Cancelled(), Cancelled())]]) -> Cancelled()
+            ExceptionGroup([Cancelled(), MyException(), ValueError()]) -> *no change*
+            ExceptionGroup([MyException('foo'), MyException('foo')]) -> MyException('foo')
+            ExceptionGroup([MyException('foo'), MyException('bar')]) -> *no change*
 
-        multi_error_defer_to(MyImportantException, trio.Cancelled, MyBaseException)
+        exceptgroup_defer_to(MyImportantException, trio.Cancelled, MyBaseException)
             # where isinstance(MyDerivedException, MyBaseException)
             #   and isinstance(MyImportantException, MyBaseException)
-            MultiError([Cancelled(), MyDerivedException()]) -> Cancelled()
-            MultiError([MyImportantException(), Cancelled()]) -> MyImportantException()
+            ExceptionGroup([Cancelled(), MyDerivedException()]) -> Cancelled()
+            ExceptionGroup([MyImportantException(), Cancelled()]) -> MyImportantException()
 
     :param privileged_types: exception types from highest priority to lowest
-    :param propagate_multi_error: if false, raise a RuntimeError where a
-        MultiError would otherwise be leaked
-    :param strict: propagate MultiError if there are multiple output exceptions
+    :param propagate_exc_group: if false, raise a RuntimeError where a
+        ExceptionGroup would otherwise be leaked
+    :param strict: propagate ExceptionGroup if there are multiple output exceptions
         to chose from (i.e. multiple exceptions objects with differing repr()
         are instances of the privileged type).  When combined with
-        propagate_multi_error=False, this case will raise a RuntimeError.
+        propagate_exc_group=False, this case will raise a RuntimeError.
     """
     try:
         yield
@@ -133,7 +133,7 @@ def multi_error_defer_to(*privileged_types: Type[BaseException],
                     continue
                 if not isinstance(e, privileged_types):
                     # not in privileged list
-                    if propagate_multi_error:
+                    if propagate_exc_group:
                         raise
                     raise RuntimeError('Unhandled trio.MultiError') from root_multi_error
                 errors_by_repr[repr(e)] = e
@@ -148,7 +148,26 @@ def multi_error_defer_to(*privileged_types: Type[BaseException],
         priority_errors = errors_by_priority[min(errors_by_priority)]
         if strict and len(priority_errors) > 1:
             # multiple unique exception objects at the same priority
-            if propagate_multi_error:
+            if propagate_exc_group:
                 raise
             raise RuntimeError('Unhandled trio.MultiError') from root_multi_error
         raise priority_errors[0]
+
+
+def multi_error_defer_to(
+    *privileged_types: Type[BaseException],
+    propagate_multi_error: bool = True,
+    strict: bool = True,
+):
+    """Deprecated alias for exceptgroup_defer_to()."""
+    import warnings
+    warnings.warn(
+        'multi_error_defer_to() is deprecated, use exceptgroup_defer_to() instead.',
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return exceptgroup_defer_to(
+        *privileged_types,
+        propagate_exc_error=propagate_multi_error,
+        strict=strict,
+    )

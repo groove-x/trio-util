@@ -3,41 +3,55 @@ from collections import defaultdict
 from contextlib import _GeneratorContextManager
 from functools import wraps
 from inspect import iscoroutinefunction
-from typing import ContextManager, Iterator, Type, Dict, List
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Iterator, List, Type, TypeVar
 
 import trio
 
 if sys.version_info < (3, 11):
-    from exceptiongroup import BaseExceptionGroup, ExceptionGroup
+    from exceptiongroup import BaseExceptionGroup
+
+T = TypeVar('T')
+CallT = TypeVar('CallT', bound=Callable[..., object])
+
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec, TypeAlias
+    ArgsT = ParamSpec('ArgsT')
+    _GCM: TypeAlias = _GeneratorContextManager
+else:
+    # Dummy value to make _GCM[T] work at runtime.
+    _GCM = {T: _GeneratorContextManager}
 
 
-class _AsyncFriendlyGeneratorContextManager(_GeneratorContextManager):
+class _AsyncFriendlyGeneratorContextManager(_GCM[T]):
     """
     Hack contextlib._GeneratorContextManager so that resulting context
     manager can properly decorate async functions.
     """
 
-    def __call__(self, func):
+    def __call__(self, func: CallT) -> CallT:
+        # We can't type the internals properly - inside the true branch the return type is async,
+        # but we can't express that. It needs to be a typevar bound to callable, so that it fully
+        # preserves overloads and things like that.
         if iscoroutinefunction(func):
             @wraps(func)
-            async def inner(*args, **kwargs):
+            async def inner(*args: object, **kwargs: object) -> object:
                 with self._recreate_cm():  # type: ignore[attr-defined]  # pylint: disable=not-context-manager
                     return await func(*args, **kwargs)
         else:
             @wraps(func)
-            def inner(*args, **kwargs):
+            def inner(*args: Any, **kwargs: Any) -> Any:
                 with self._recreate_cm():  # type: ignore[attr-defined]  # pylint: disable=not-context-manager
                     return func(*args, **kwargs)
-        return inner
+        return inner  # type: ignore
 
 
-def _async_friendly_contextmanager(func):
+def _async_friendly_contextmanager(func: 'Callable[ArgsT, Iterator[T]]') -> 'Callable[ArgsT, ContextManager[T]]':
     """
     Equivalent to @contextmanager, except the resulting (non-async) context
     manager works correctly as a decorator on async functions.
     """
     @wraps(func)
-    def helper(*args, **kwargs):
+    def helper(*args: 'ArgsT.args', **kwargs: 'ArgsT.kwargs') -> ContextManager[T]:
         return _AsyncFriendlyGeneratorContextManager(func, args, kwargs)
     return helper
 
@@ -156,7 +170,7 @@ def exceptgroup_defer_to(
             # multiple unique exception objects at the same priority
             if propagate_exc_group:
                 raise
-            raise RuntimeError('Unhandled trio.MultiError') from root_exc_group
+            raise RuntimeError('Unhandled ExceptionGroup') from root_exc_group
         raise priority_errors[0]
 
 

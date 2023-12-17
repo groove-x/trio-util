@@ -36,7 +36,8 @@ An assortment of utilities for the Trio async/await framework, including:
     package_dir={'': 'src'},
     install_requires=[
         'async_generator',
-        'trio >= 0.11.0'
+        'trio >= 0.11.0',
+        "exceptiongroup; python_version < '3.11'",
     ],
     python_requires='>=3.7',
     classifiers=[

@@ -1,10 +1,14 @@
+import sys
 from collections import defaultdict
 from contextlib import _GeneratorContextManager
 from functools import wraps
 from inspect import iscoroutinefunction
-from typing import Type, Dict, List
+from typing import ContextManager, Iterator, Type, Dict, List
 
 import trio
+
+if sys.version_info < (3, 11):
+    from exceptiongroup import BaseExceptionGroup, ExceptionGroup
 
 
 class _AsyncFriendlyGeneratorContextManager(_GeneratorContextManager):
@@ -38,27 +42,27 @@ def _async_friendly_contextmanager(func):
     return helper
 
 
-def defer_to_cancelled(*args: Type[Exception]):
-    """Context manager which defers MultiError exceptions to Cancelled.
+def defer_to_cancelled(*args: Type[BaseException]) -> ContextManager[None]:
+    """Context manager which defers [Base]ExceptionGroup exceptions to Cancelled.
 
-    In the scope of this context manager, any raised trio.MultiError exception
+    In the scope of this context manager, any raised [Base]ExceptionGroup exception
     which is a combination of the given exception types and trio.Cancelled
     will have the exception types filtered, leaving only a Cancelled exception.
 
     The intended use is where routine exceptions (e.g. which are part of an API)
     might occur simultaneously with Cancelled (e.g. when using move_on_after()).
-    Without properly catching and filtering the resulting MultiError, an
+    Without properly catching and filtering the resulting ExceptionGroup, an
     unhandled exception will occur.  Often what is desired in this case is
     for the Cancelled exception alone to propagate to the cancel scope.
 
-    Equivalent to ``multi_error_defer_to(trio.Cancelled, *args)``.
+    Equivalent to ``exceptgroup_defer_to(trio.Cancelled, *args)``.
 
     :param args:  One or more exception types which will defer to
         trio.Cancelled.  By default, all exception types will be filtered.
 
     Example::
 
-        # If MultiError([Cancelled, Obstacle]) occurs, propagate only Cancelled
+        # If ExceptionGroup([Cancelled, Obstacle]) occurs, propagate only Cancelled
         # to the parent cancel scope.
         with defer_to_cancelled(Obstacle):
             try:
@@ -72,11 +76,13 @@ def defer_to_cancelled(*args: Type[Exception]):
 
 
 @_async_friendly_contextmanager
-def exceptgroup_defer_to(*privileged_types: Type[BaseException],
-                         propagate_exc_group=True,
-                         strict=True):
+def exceptgroup_defer_to(
+    *privileged_types: Type[BaseException],
+    propagate_exc_group: bool = True,
+    strict: bool = True,
+) -> Iterator[None]:
     """
-    Defer an ExceptionGroup exception to a single, privileged exception
+    Defer a [Base]ExceptionGroup exception to a single, privileged exception.
 
     In the scope of this context manager, a raised ExceptionGroup will be coalesced
     into a single exception with the highest privilege if the following
@@ -92,7 +98,7 @@ def exceptgroup_defer_to(*privileged_types: Type[BaseException],
            ValueError('foo') and ValueError('bar') are the most privileged.
 
     If the criteria are not met, by default the original ExceptionGroup is
-    propagated.  Use propagate_multi_error=False to instead raise a
+    propagated.  Use propagate_exc_group=False to instead raise a
     RuntimeError in these cases.
 
     Examples::
@@ -121,21 +127,21 @@ def exceptgroup_defer_to(*privileged_types: Type[BaseException],
     """
     try:
         yield
-    except trio.MultiError as root_multi_error:
+    except BaseExceptionGroup as root_exc_group:
         # flatten the exceptions in the MultiError, grouping by repr()
-        multi_errors = [root_multi_error]
+        exc_groups = [root_exc_group]
         errors_by_repr = {}  # exception_repr -> exception_object
-        while multi_errors:
-            multi_error = multi_errors.pop()
-            for e in multi_error.exceptions:
-                if isinstance(e, trio.MultiError):
-                    multi_errors.append(e)
+        while exc_groups:
+            exc_group = exc_groups.pop()
+            for e in exc_group.exceptions:
+                if isinstance(e, BaseExceptionGroup):
+                    exc_groups.append(e)
                     continue
                 if not isinstance(e, privileged_types):
                     # not in privileged list
                     if propagate_exc_group:
                         raise
-                    raise RuntimeError('Unhandled trio.MultiError') from root_multi_error
+                    raise RuntimeError('Unhandled ExceptionGroup') from root_exc_group
                 errors_by_repr[repr(e)] = e
         # group the resulting errors by index in the privileged type list
         # priority_index -> exception_object
@@ -150,7 +156,7 @@ def exceptgroup_defer_to(*privileged_types: Type[BaseException],
             # multiple unique exception objects at the same priority
             if propagate_exc_group:
                 raise
-            raise RuntimeError('Unhandled trio.MultiError') from root_multi_error
+            raise RuntimeError('Unhandled trio.MultiError') from root_exc_group
         raise priority_errors[0]
 
 
@@ -158,7 +164,7 @@ def multi_error_defer_to(
     *privileged_types: Type[BaseException],
     propagate_multi_error: bool = True,
     strict: bool = True,
-):
+) -> ContextManager[None]:
     """Deprecated alias for exceptgroup_defer_to()."""
     import warnings
     warnings.warn(
@@ -168,6 +174,6 @@ def multi_error_defer_to(
     )
     return exceptgroup_defer_to(
         *privileged_types,
-        propagate_exc_error=propagate_multi_error,
+        propagate_exc_group=propagate_multi_error,
         strict=strict,
     )

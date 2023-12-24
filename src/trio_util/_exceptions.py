@@ -45,7 +45,9 @@ class _AsyncFriendlyGeneratorContextManager(_GCM[T]):
         return inner  # type: ignore
 
 
-def _async_friendly_contextmanager(func: 'Callable[ArgsT, Iterator[T]]') -> 'Callable[ArgsT, ContextManager[T]]':
+def _async_friendly_contextmanager(
+    func: 'Callable[ArgsT, Iterator[T]]',
+) -> 'Callable[ArgsT, ContextManager[T]]':
     """
     Equivalent to @contextmanager, except the resulting (non-async) context
     manager works correctly as a decorator on async functions.

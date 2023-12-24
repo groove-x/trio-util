@@ -6,7 +6,7 @@ import trio
 from trio_util import defer_to_cancelled, multi_error_defer_to, exceptgroup_defer_to
 
 if sys.version_info < (3, 11):
-    from exceptiongroup import ExceptionGroup, BaseExceptionGroup
+    from exceptiongroup import BaseExceptionGroup
 
 
 def _cancelled() -> trio.Cancelled:

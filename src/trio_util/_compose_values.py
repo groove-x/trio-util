@@ -2,7 +2,7 @@ from collections import namedtuple
 from contextlib import contextmanager, ExitStack
 from functools import partial
 from typing import (
-    ContextManager, Callable, Any, Dict, Iterator, NoReturn, Optional, TypeVar,
+    ContextManager, Callable, Any, Dict, Iterator, Optional, TypeVar,
     Union, overload,
 )
 

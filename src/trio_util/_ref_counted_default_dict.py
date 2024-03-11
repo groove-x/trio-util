@@ -1,4 +1,4 @@
-from typing import Callable, DefaultDict, Generator, Generic, TypeVar, overload
+from typing import Callable, DefaultDict, Generator, Generic, TypeVar
 from collections import defaultdict
 from contextlib import contextmanager
 

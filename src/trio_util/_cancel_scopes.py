@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from functools import partial
-from typing import Awaitable, Callable, AsyncGenerator, NoReturn, TYPE_CHECKING
+from typing import Awaitable, Callable, AsyncGenerator, TYPE_CHECKING
 
 import trio
 

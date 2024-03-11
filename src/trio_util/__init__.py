@@ -12,7 +12,7 @@ from ._repeated_event import RepeatedEvent
 from ._task_stats import TaskStats
 from ._trio_async_generator import trio_async_generator
 
-def _metadata_fix():
+def _metadata_fix() -> None:
     # don't do this for Sphinx case because it breaks "bysource" member ordering
     import sys
     if 'sphinx' in sys.modules:  # pragma: no cover

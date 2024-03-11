@@ -91,13 +91,30 @@ def azip_longest(
 @overload
 def azip_longest(
     __it1: AsyncIterable[T1], __it2: AsyncIterable[T2], __it3: AsyncIterable[T3],
-    __it4: AsyncIterable[T4]) -> AsyncIterator[Tuple[T1, T2, T3, T4]]: ...
+    __it4: AsyncIterable[T4],
+) -> AsyncIterator[Tuple[Union[T1, Any], Union[T2, Any], Union[T3, Any], Union[T4, Any]]]: ...
+@overload
+def azip_longest(
+    __it1: AsyncIterable[T1], __it2: AsyncIterable[T2], __it3: AsyncIterable[T3],
+    __it4: AsyncIterable[T4],
+    *, fillvalue: FillT,
+) -> AsyncIterator[Tuple[Union[T1, FillT], Union[T2, FillT], Union[T3, FillT], Union[T4, FillT]]]: ...
 # Five iterables
 @overload
 def azip_longest(
     __it1: AsyncIterable[T1], __it2: AsyncIterable[T2], __it3: AsyncIterable[T3],
     __it4: AsyncIterable[T4], __it5: AsyncIterable[T5],
-) -> AsyncIterator[Tuple[T1, T2, T3, T4, T5]]: ...
+) -> AsyncIterator[Tuple[
+    Union[T1, Any], Union[T2, Any], Union[T3, Any], Union[T4, Any], Union[T5, Any],
+]]: ...
+@overload
+def azip_longest(
+    __it1: AsyncIterable[T1], __it2: AsyncIterable[T2], __it3: AsyncIterable[T3],
+    __it4: AsyncIterable[T4], __it5: AsyncIterable[T5],
+    *, fillvalue: FillT,
+) -> AsyncIterator[Tuple[
+    Union[T1, FillT], Union[T2, FillT], Union[T3, FillT], Union[T4, FillT], Union[T5, FillT],
+]]: ...
 # Six or more
 @overload
 def azip_longest(

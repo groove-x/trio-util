@@ -1,4 +1,4 @@
-from typing import Any, AsyncIterable, AsyncIterator, Tuple, TypeVar, Union, overload
+from typing import Any, AsyncIterable, AsyncIterator, List, Tuple, TypeVar, Union, overload
 
 import trio
 
@@ -16,7 +16,7 @@ async def _azip(aiterables: Tuple[AsyncIterable[Any], ...], fillvalue: object, s
     iters = [item.__aiter__() for item in aiterables]
     while True:
         stop_count = 0
-        items: list[object] = [fillvalue] * len(iters)
+        items: List[object] = [fillvalue] * len(iters)
 
         async def collect(i: int, iterator: AsyncIterator[object]) -> None:
             try:

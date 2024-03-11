@@ -1,7 +1,7 @@
 # pylint: disable=line-too-long,multiple-statements
 from contextlib import contextmanager
 from typing import (
-    Any, Generator, TypeVar, Generic, AsyncIterator, Tuple,
+    Any, Generator, Set, TypeVar, Generic, AsyncIterator, Tuple,
     ContextManager, Callable, Union, overload,
 )
 
@@ -24,7 +24,7 @@ class _WaitQueue:
     __slots__ = ['tasks']
 
     def __init__(self) -> None:
-        self.tasks: set[trio.lowlevel.Task] = set()
+        self.tasks: Set[trio.lowlevel.Task] = set()
 
     async def park(self) -> None:
         task = lowlevel.current_task()

@@ -2,7 +2,7 @@ import trio
 
 from trio_util import periodic
 
-async def test_periodic(autojump_clock):
+async def test_periodic(autojump_clock: trio.abc.Clock) -> None:
     count = 0
     t0 = trio.current_time()
     async for elapsed, dt in periodic(1.5):
@@ -15,7 +15,7 @@ async def test_periodic(autojump_clock):
     total_elapsed = trio.current_time() - t0
     assert total_elapsed == 4.5
 
-async def test_periodic_overrun(autojump_clock):
+async def test_periodic_overrun(autojump_clock: trio.abc.Clock) -> None:
     count = 0
     t0 = trio.current_time()
     async for elapsed, dt in periodic(1.5):

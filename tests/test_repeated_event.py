@@ -5,7 +5,7 @@ from trio.testing import wait_all_tasks_blocked
 from trio_util import RepeatedEvent
 
 
-async def test_repeated_event_wait(nursery, autojump_clock):
+async def test_repeated_event_wait(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
     done = trio.Event()
     event = RepeatedEvent()
 
@@ -15,7 +15,7 @@ async def test_repeated_event_wait(nursery, autojump_clock):
             await event.wait()
 
     @nursery.start_soon
-    async def _listener():
+    async def _listener() -> None:
         await event.wait()
         done.set()
 
@@ -24,14 +24,14 @@ async def test_repeated_event_wait(nursery, autojump_clock):
     await done.wait()
 
 
-async def test_repeated_event_unqueued(nursery, autojump_clock):
+async def test_repeated_event_unqueued(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
     event = RepeatedEvent()
     counts = [0, 0]
 
     # a set() before the listener opens will not be queued
     event.set()
 
-    async def listener(i):
+    async def listener(i: int) -> None:
         async for _ in event.unqueued_events():
             counts[i] += 1
             await trio.sleep(i + 1)
@@ -58,14 +58,14 @@ async def test_repeated_event_unqueued(nursery, autojump_clock):
     assert counts == [2, 2]
 
 
-async def test_repeated_event_eventually_consistent(nursery, autojump_clock):
+async def test_repeated_event_eventually_consistent(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
     event = RepeatedEvent()
     counts = [0, 0]
 
     # a set() before the listener opens will not be queued
     event.set()
 
-    async def listener(i):
+    async def listener(i: int) -> None:
         async for _ in event.events():
             counts[i] += 1
             await trio.sleep(i + 1)
@@ -95,7 +95,7 @@ async def test_repeated_event_eventually_consistent(nursery, autojump_clock):
     assert counts == [3, 3]
 
 
-async def test_repeated_event_repeat_last(autojump_clock):
+async def test_repeated_event_repeat_last(autojump_clock: trio.abc.Clock) -> None:
     event = RepeatedEvent()
 
     # no event was set, repeat_last=True will still iterate immediately

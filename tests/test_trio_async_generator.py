@@ -1,4 +1,5 @@
 from math import inf
+from typing import AsyncGenerator
 
 import trio
 
@@ -8,7 +9,11 @@ from trio_util._trio_async_generator import trio_async_generator
 
 
 @trio_async_generator
-async def squares_in_range(start, stop, timeout=inf, max_timeout_count=1):
+async def squares_in_range(
+    start: int, stop: int,
+    timeout: float = inf,
+    max_timeout_count: int = 1,
+) -> AsyncGenerator[int, None]:
     timeout_count = 0
     for i in range(start, stop):
         with trio.move_on_after(timeout) as cancel_scope:
@@ -20,7 +25,7 @@ async def squares_in_range(start, stop, timeout=inf, max_timeout_count=1):
                 break
 
 
-async def test_trio_agen_full_iteration():
+async def test_trio_agen_full_iteration() -> None:
     last = None
     async with squares_in_range(0, 50) as squares:
         async for square in squares:
@@ -28,7 +33,7 @@ async def test_trio_agen_full_iteration():
     assert last == 49 ** 2
 
 
-async def test_trio_agen_caller_exits():
+async def test_trio_agen_caller_exits() -> None:
     async with squares_in_range(0, 50) as squares:
         async for square in squares:
             if square >= 400:
@@ -36,7 +41,7 @@ async def test_trio_agen_caller_exits():
     assert False
 
 
-async def test_trio_agen_caller_cancelled(autojump_clock):
+async def test_trio_agen_caller_cancelled(autojump_clock: trio.abc.Clock) -> None:
     with trio.move_on_after(1):
         async with squares_in_range(0, 50) as squares:
             async for square in squares:
@@ -45,7 +50,7 @@ async def test_trio_agen_caller_cancelled(autojump_clock):
                 await trio.sleep(10)
 
 
-async def test_trio_agen_aborts_yield(autojump_clock):
+async def test_trio_agen_aborts_yield(autojump_clock: trio.abc.Clock) -> None:
     async with squares_in_range(0, 50, timeout=.5, max_timeout_count=1) as squares:
         async for square in squares:
             assert square == 0
@@ -53,7 +58,7 @@ async def test_trio_agen_aborts_yield(autojump_clock):
             await trio.sleep(1)
 
 
-async def test_trio_agen_aborts_yield_and_continues(autojump_clock):
+async def test_trio_agen_aborts_yield_and_continues(autojump_clock: trio.abc.Clock) -> None:
     async with squares_in_range(0, 50, timeout=.5, max_timeout_count=99) as squares:
         _sum = 0
         async for square in squares:

@@ -5,10 +5,10 @@ import trio
 from trio_util import wait_all, wait_any
 
 
-async def test_all(nursery, autojump_clock):
+async def test_all(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
     count = 0
 
-    async def foo(duration):
+    async def foo(duration: int) -> None:
         await trio.sleep(duration)
         nonlocal count
         count += 1
@@ -17,10 +17,10 @@ async def test_all(nursery, autojump_clock):
     assert count == 2
 
 
-async def test_any(nursery, autojump_clock):
+async def test_any(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
     count = 0
 
-    async def foo(duration):
+    async def foo(duration: int) -> None:
         await trio.sleep(duration)
         nonlocal count
         count += 1

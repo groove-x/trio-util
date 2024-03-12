@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Optional
+from typing import AsyncIterator, Awaitable, Callable, List, Optional, Tuple, TypeVar
 from unittest.mock import Mock
 
 import pytest
@@ -10,14 +10,17 @@ from trio_util import AsyncValue
 from trio_util._async_value import _ValueWrapper
 
 
-async def test_async_value(nursery):
-    async def waiter(event: AsyncValue):
+T = TypeVar("T")
+
+
+async def test_async_value(nursery: trio.Nursery) -> None:
+    async def waiter(event: AsyncValue[Optional[int]]) -> None:
         # ensure checkpoint even if condition already true
         assert event.value == 20
         with assert_checkpoints():
             assert await event.wait_value(lambda x: x == 20) == 20
         print('#1')
-        assert await event.wait_value(lambda x: x > 20) == 21
+        assert await event.wait_value(lambda x: x is not None and x > 20) == 21
         print('#2')
         # (test default predicate)
         assert await event.wait_transition() == (30, 21)
@@ -25,7 +28,7 @@ async def test_async_value(nursery):
         assert await event.wait_transition(
             lambda val, old: val is None and old is not None) == (None, 30)
         print('#4')
-        assert await event.wait_value(lambda x: x > 50) == 51
+        assert await event.wait_value(lambda x: x is not None and x > 50) == 51
         await wait_all_tasks_blocked()
         assert event.value == 0
         print('#5')
@@ -55,16 +58,16 @@ async def test_async_value(nursery):
     await wait_all_tasks_blocked()
 
 
-def test_repr():
+def test_repr() -> None:
     foo = AsyncValue(10)
     assert repr(foo) == 'AsyncValue(10)'
 
 
-async def test_wait_value_held_for(nursery, autojump_clock):
+async def test_wait_value_held_for(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
     test1_done = trio.Event()
     test2_done = trio.Event()
 
-    async def listener(event: AsyncValue):
+    async def listener(event: AsyncValue[int]) -> None:
         assert event.value == 10  # condition already true
         t0 = trio.current_time()
         assert await event.wait_value(lambda x: x == 10, held_for=1) == 10
@@ -94,14 +97,18 @@ async def test_wait_value_held_for(nursery, autojump_clock):
     (partial(AsyncValue.wait_value, held_for=1), True),
     (AsyncValue.wait_transition, False),
 ])
-async def test_predicate_eval_scope(wait_function, predicate_return, nursery):
+async def test_predicate_eval_scope(
+    wait_function: Callable[[AsyncValue[int], Callable[[int], bool]], Awaitable[object]],
+    predicate_return: bool,
+    nursery: trio.Nursery,
+) -> None:
     # predicate evaluations are not expected outside of wait_* method lifetime
     x = AsyncValue(0)
     predicate = Mock(return_value=predicate_return)
     cancel_scope = trio.CancelScope()
 
     @nursery.start_soon
-    async def _wait():
+    async def _wait() -> None:
         with cancel_scope:
             await wait_function(x, predicate)
 
@@ -113,10 +120,10 @@ async def test_predicate_eval_scope(wait_function, predicate_return, nursery):
     assert predicate.call_count == predicate_call_count
 
 
-async def test_wait_value_by_value(nursery):
+async def test_wait_value_by_value(nursery: trio.Nursery) -> None:
     done = trio.Event()
 
-    async def listener(event: AsyncValue):
+    async def listener(event: AsyncValue[int]) -> None:
         assert event.value == 10
         assert await event.wait_value(10) == 10
         assert await event.wait_value(12) == 12
@@ -129,10 +136,10 @@ async def test_wait_value_by_value(nursery):
     await done.wait()
 
 
-async def test_wait_transition_by_value(nursery):
+async def test_wait_transition_by_value(nursery: trio.Nursery) -> None:
     done = trio.Event()
 
-    async def listener(event: AsyncValue):
+    async def listener(event: AsyncValue[int]) -> None:
         assert event.value == 10
         assert await event.wait_transition(10) == (10, 9)
         done.set()
@@ -146,7 +153,7 @@ async def test_wait_transition_by_value(nursery):
     await done.wait()
 
 
-def _always_false(val):
+def _always_false(val: object) -> bool:
     return False
 
 
@@ -161,10 +168,15 @@ def _always_false(val):
     # (same) predicate will be keyed by the function object
     (None, _always_false, [type(_always_false)]),
 ])
-async def test_wait_queue(initial_val, wait_val, expected_queue_key_types, nursery):
+async def test_wait_queue(
+    initial_val: T,
+    wait_val: T,
+    expected_queue_key_types: List[type],
+    nursery: trio.Nursery,
+) -> None:
     # two tasks run wait_value() on the same value, check wait queue key type and number
 
-    async def listener(event: AsyncValue):
+    async def listener(event: AsyncValue[T]) -> None:
         assert event.value == initial_val
         await event.wait_value(wait_val)
 
@@ -175,11 +187,11 @@ async def test_wait_queue(initial_val, wait_val, expected_queue_key_types, nurse
     assert [type(val) for val in x._level_results] == expected_queue_key_types
 
 
-def _even(v):
+def _even(v: int) -> bool:
     return v & 1 == 0
 
 
-def _odd(v):
+def _odd(v: int) -> bool:
     return v & 1 == 1
 
 
@@ -201,16 +213,22 @@ def _odd(v):
     (_even, 0.5, 0.0, [.4, .9] * 3, [6]),
     (_even, 0.5, 0.0, [.9, .4] * 3, [0, 2, 4, 6]),
 ])
-async def test_eventual_values(predicate, held_for,
-                               consume_duration, publish_durations, expected_values,
-                               nursery, autojump_clock):
+async def test_eventual_values(
+    predicate: Optional[Callable[[int], bool]],
+    held_for: float,
+    consume_duration: float,
+    publish_durations: List[float],
+    expected_values: List[int],
+    nursery: trio.Nursery,
+    autojump_clock: trio.abc.Clock,
+) -> None:
     assert held_for == 0 or predicate is not None
     expected_values = expected_values[:]
     x = AsyncValue(0)  # publisher uses sequence [0, 1, 2, ...]
     done_event = trio.Event()
 
     @nursery.start_soon
-    async def _consumer():
+    async def _consumer() -> None:
         iterator = x.eventual_values() if predicate is None \
                 else x.eventual_values(predicate, held_for=held_for)
         async for val in iterator:
@@ -229,7 +247,7 @@ async def test_eventual_values(predicate, held_for,
     await done_event.wait()
 
 
-async def test_eventual_values_aba(nursery, autojump_clock):
+async def test_eventual_values_aba(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
     x = AsyncValue(0)  # publisher uses sequence [0, 1, 0, 1, ...]
     done_event = trio.Event()
 
@@ -240,7 +258,7 @@ async def test_eventual_values_aba(nursery, autojump_clock):
     expected_values = [0]
 
     @nursery.start_soon
-    async def _consumer():
+    async def _consumer() -> None:
         async for val in x.eventual_values():
             assert val == expected_values.pop(0)
             await trio.sleep(consume_duration)
@@ -262,13 +280,18 @@ async def test_eventual_values_aba(nursery, autojump_clock):
     # force lost transition due to multiple transitions before subscriber body is entered
     (0.0, [.1, .1, None, .1], [(1, 0), (2, 1), (4, 3)]),
 ])
-async def test_transitions(consume_duration, publish_durations, expected_values,
-                           nursery, autojump_clock):
+async def test_transitions(
+    consume_duration: float,
+    publish_durations: List[Optional[float]],
+    expected_values: List[Tuple[int, int]],
+    nursery: trio.Nursery,
+    autojump_clock: trio.abc.Clock,
+) -> None:
     x = AsyncValue(0)
     done_event = trio.Event()
 
     @nursery.start_soon
-    async def _consumer():
+    async def _consumer() -> None:
         async for val, old in x.transitions():
             assert (val, old) == expected_values.pop(0)
             await trio.sleep(consume_duration)
@@ -283,16 +306,20 @@ async def test_transitions(consume_duration, publish_durations, expected_values,
     await done_event.wait()
 
 
-async def test_transitions_parallel_consumers(autojump_clock):
+async def test_transitions_parallel_consumers(autojump_clock: trio.abc.Clock) -> None:
 
-    async def _consumer(agen, expected, done):
+    async def _consumer(
+        agen: AsyncIterator[Tuple[int, int]],
+        expected: List[Tuple[int, int]],
+        done: trio.Event,
+    ) -> None:
         async for val, old in agen:
             assert (val, old) == expected.pop(0)
             if not expected:
                 done.set()
 
     x = AsyncValue(0)
-    done_events = []
+    done_events: List[trio.Event] = []
     unique_predicates = 0
 
     async with trio.open_nursery() as nursery:
@@ -326,7 +353,7 @@ async def test_transitions_parallel_consumers(autojump_clock):
     assert not x._edge_results
 
 
-def test_open_transform():
+def test_open_transform() -> None:
     x = AsyncValue(1)
 
     with x.open_transform(lambda val: val * 2) as y:

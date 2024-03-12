@@ -12,6 +12,22 @@ from ._repeated_event import RepeatedEvent
 from ._task_stats import TaskStats
 from ._trio_async_generator import trio_async_generator
 
+__all__ = [
+    '__version__',
+    'AsyncBool', 'AsyncValue',
+    'azip', 'azip_longest',
+    'wait_all', 'wait_any',
+    'move_on_when', 'run_and_cancelling',
+    'compose_values',
+    'defer_to_cancelled', 'multi_error_defer_to',
+    'iter_fail_after', 'iter_move_on_after',
+    'periodic',
+    'RepeatedEvent',
+    'TaskStats',
+    'trio_async_generator',
+]
+
+
 def _metadata_fix() -> None:
     # don't do this for Sphinx case because it breaks "bysource" member ordering
     import sys
@@ -21,5 +37,6 @@ def _metadata_fix() -> None:
     for name, value in globals().items():
         if not name.startswith('_'):
             value.__module__ = __name__
+
 
 _metadata_fix()

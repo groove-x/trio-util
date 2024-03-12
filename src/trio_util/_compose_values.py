@@ -2,7 +2,7 @@ from collections import namedtuple
 from contextlib import contextmanager, ExitStack
 from functools import partial
 from typing import (
-    ContextManager, Callable, Any, Dict, Iterator, Optional, TypeVar,
+    ContextManager, Callable, Any, Dict, Generic, Iterator, Optional, Protocol, Tuple, TypeVar,
     Union, overload,
 )
 
@@ -10,24 +10,32 @@ from ._async_value import AsyncValue
 
 T_OUT = TypeVar('T_OUT')
 T = TypeVar('T')
+T_co = TypeVar('T_co', covariant=True)
 
 
 def _IDENTITY(x: T) -> T:
     return x
 
 
+class _ValueTuple(Generic[T_co], Tuple[T_co, ...]):
+    """compose_values() returns arbitary named tuples. This represents that for type checkers."""
+    def __getattr__(self, item: str) -> T_co:
+        """We can't check attribute names are correct, but produce the right type."""
+        raise NotImplementedError
+
+
 @overload
 def compose_values(
     *, _transform_: None = None,
     **value_map: AsyncValue[T],
-) -> ContextManager[AsyncValue[T]]: ...
+) -> ContextManager[AsyncValue[_ValueTuple[T]]]: ...
 @overload
 def compose_values(
-    *, _transform_: Callable[[T], T_OUT],
+    *, _transform_: Callable[[_ValueTuple[T]], T_OUT],
     **value_map: AsyncValue[T],
 ) -> ContextManager[AsyncValue[T_OUT]]: ...
 def compose_values(
-    *, _transform_: Optional[Callable[[T], T_OUT]] = None,
+    *, _transform_: Optional[Callable[[_ValueTuple[T]], T_OUT]] = None,
     **value_map: AsyncValue[T],
 ) -> ContextManager[AsyncValue[Any]]:
     """Context manager providing a composite of multiple AsyncValues
@@ -78,10 +86,10 @@ def compose_values(
 
 @contextmanager
 def _compose_values(
-    _transform_: Optional[Callable[[T], T_OUT]],
+    _transform_: Optional[Callable[[_ValueTuple[T]], T_OUT]],
     value_map: Dict[str, AsyncValue[T]],
-) -> Iterator[Union[AsyncValue[T], AsyncValue[T_OUT]]]:
-    transform: Callable[[T], T_OUT] = _transform_ or _IDENTITY  # type: ignore[assignment]
+) -> Iterator[AsyncValue[Any]]:
+    transform: Callable[[_ValueTuple[T]], T_OUT] = _transform_ or _IDENTITY  # type: ignore[assignment]
     async_vals = value_map.values()
     if not (async_vals and all(isinstance(av, AsyncValue) for av in async_vals)):
         raise TypeError('expected instances of AsyncValue')

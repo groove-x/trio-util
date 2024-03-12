@@ -2,7 +2,7 @@
 from contextlib import contextmanager
 from typing import (
     Any, Generator, Set, TypeVar, Generic, AsyncIterator, Tuple,
-    ContextManager, Callable, Union, overload,
+    ContextManager, Callable, Union, cast, overload, TYPE_CHECKING,
 )
 
 import trio
@@ -14,6 +14,9 @@ except ImportError:  # pragma: no cover
 
 from ._ref_counted_default_dict import _RefCountedDefaultDict
 
+if TYPE_CHECKING:
+    from typing_extensions import TypeGuard
+
 
 class _WaitQueue:
     """Fast replacement for trio.ParkingLot.
@@ -24,7 +27,7 @@ class _WaitQueue:
     __slots__ = ['tasks']
 
     def __init__(self) -> None:
-        self.tasks: Set[object] = set()
+        self.tasks: Set[lowlevel.Task] = set()
 
     async def park(self) -> None:
         task = lowlevel.current_task()
@@ -53,6 +56,7 @@ def _ANY_VALUE(value: object) -> bool:
 _UNSET: Any = object()
 T = TypeVar('T')
 T2 = TypeVar('T2')
+T3 = TypeVar('T3')
 P = Callable[[T], bool]
 P2 = Callable[[T, T], bool]
 CallT = TypeVar('CallT', bound=Callable[..., object])
@@ -95,7 +99,8 @@ class _ValueWrapper:
             return self.value.__eq__(other.value)
         return NotImplemented
 
-    def __call__(self, x: object, *args: object) -> bool:
+    def __call__(self, x: object, *args: object) -> TypeGuard[Any]:
+        # Not TypeGuard, but all usages below may have a typeguard passed in.
         return x == self.value
 
 
@@ -191,19 +196,41 @@ class AsyncValue(Generic[T]):
             for f3, output in self._transforms.items():
                 output.value = f3(new)
 
+    @overload
     @staticmethod
     async def _wait_predicate(
-        result_map: _RefCountedDefaultDict[CallT, _Result[T2]], predicate: CallT,
-    ) -> T2:
+        result_map: _RefCountedDefaultDict[Callable[..., Any], _Result[T2]],
+        predicate: Callable[[T2], TypeGuard[T3]],
+    ) -> T3: ...
+    @overload
+    @staticmethod
+    async def _wait_predicate(
+        result_map: _RefCountedDefaultDict[CallT, _Result[T3]], predicate: CallT,
+    ) -> T3: ...
+    @staticmethod
+    async def _wait_predicate(
+        result_map: _RefCountedDefaultDict[Callable[..., Any], _Result[T2]],
+        predicate: Callable[..., Any],
+    ) -> Any:
         with result_map.open_ref(predicate) as result:
             await result.event.park()
         return result.value
 
+    # The self-type is used here so the return value is always T2, even without a predicate.
     @overload
-    async def wait_value(self, __value: T, *, held_for: float = 0.0) -> T: ...
+    async def wait_value(self: 'AsyncValue[T2]', __value: T2, *, held_for: float = 0.0) -> T2: ...
     @overload
-    async def wait_value(self, __predicate: P[T], *, held_for: float = 0.0) -> T: ...
-    async def wait_value(self, value_or_predicate: Union[T, P[T]], *, held_for: float = 0.0) -> T:
+    async def wait_value(
+        self,
+        __predicate: 'Callable[[T], TypeGuard[T2]]', *, held_for: float = 0.0,
+    ) -> T2: ...
+    @overload
+    async def wait_value(self: 'AsyncValue[T2]', __predicate: P[T2], *, held_for: float = 0.0) -> T2: ...
+    async def wait_value(
+        self, value_or_predicate: Union[T2, P[T2], 'Callable[[T], TypeGuard[T2]]'],
+        *,
+        held_for: float = 0.0,
+    ) -> T2:
         """
         Wait until given predicate f(value) is True.
 
@@ -219,8 +246,8 @@ class AsyncValue(Generic[T]):
         returns value which satisfied the predicate
         (when held_for > 0, it's the most recent value)
         """
-        value: T
-        predicate: P[T] = _ValueWrapper(value_or_predicate)
+        value: T2
+        predicate: Callable[[T], TypeGuard[T2]] = _ValueWrapper(value_or_predicate)
         while True:
             if not predicate(self._value):
                 value = await self._wait_predicate(self._level_results, predicate)
@@ -237,19 +264,29 @@ class AsyncValue(Generic[T]):
     # NOTE: it's hard to make both type check and lint happy with generator overloads
     # https://github.com/python/mypy/issues/10301
     # https://github.com/PyCQA/astroid/issues/1015
+    # eval() returns Any, so we ignore wrong types.
+    # The self-type is used here so the return value is always T2, even without a predicate.
     @overload
-    async def eventual_values(self, __value: T, held_for: float = 0.0) -> AsyncIterator[T]: yield self._value
+    async def eventual_values(
+        self: 'AsyncValue[T2]', __value: T2, held_for: float = 0.0,
+    ) -> AsyncIterator[T2]: yield eval('')
     @overload
     async def eventual_values(
         self,
-        __predicate: P[T] = _ANY_VALUE,
+        __predicate: 'Callable[[T], TypeGuard[T2]]',
         held_for: float = 0.0,
-    ) -> AsyncIterator[T]: yield self._value
+    ) -> AsyncIterator[T2]: yield eval('')
+    @overload
+    async def eventual_values(
+        self: 'AsyncValue[T2]',
+        __predicate: P[T2] = _ANY_VALUE,
+        held_for: float = 0.0,
+    ) -> AsyncIterator[T2]: yield self._value
     async def eventual_values(
         self,
-        value_or_predicate: Union[T, P[T]] = _ANY_VALUE,
+        value_or_predicate: Union[T2, P[T2], 'Callable[[T], TypeGuard[T2]]'] = _ANY_VALUE,
         held_for: float = 0.0,
-    ) -> AsyncIterator[T]:
+    ) -> AsyncIterator[T2]:
         """
         Yield values matching the predicate with eventual consistency
 
@@ -267,7 +304,7 @@ class AsyncValue(Generic[T]):
         If held_for > 0, the predicate must match for that duration.
         """
         predicate = _ValueWrapper(value_or_predicate)
-        last_value: T = self._value
+        last_value = self._value
         with self._level_results.open_ref(predicate) as result, \
                 self._level_results.open_ref(lambda v: v != last_value) as not_last_value, \
                 self._level_results.open_ref(lambda v: not predicate(v)) as not_predicate:
@@ -281,7 +318,8 @@ class AsyncValue(Generic[T]):
                     with trio.move_on_after(held_for):
                         await not_predicate.event.park()
                         continue
-                yield last_value
+                # predicate() has been checked, we know this is the matching value.
+                yield last_value  # type: ignore[misc]
                 if self._value == last_value:
                     await not_last_value.event.park()
 

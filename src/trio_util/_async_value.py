@@ -24,7 +24,7 @@ class _WaitQueue:
     __slots__ = ['tasks']
 
     def __init__(self) -> None:
-        self.tasks: Set[trio.lowlevel.Task] = set()
+        self.tasks: Set[object] = set()
 
     async def park(self) -> None:
         task = lowlevel.current_task()

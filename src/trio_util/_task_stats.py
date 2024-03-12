@@ -9,6 +9,12 @@ logger = logging.getLogger(__name__)
 RATE_MEASURE_PERIOD = .25
 
 
+try:
+    from trio.lowlevel import Task
+except ImportError:  # pragma: no cover
+    from trio.hazmat import Task  # type: ignore
+
+
 class TaskStats(trio.abc.Instrument):
     """Trio scheduler Instrument which logs various task stats at termination.
 
@@ -33,7 +39,7 @@ class TaskStats(trio.abc.Instrument):
         self.slow_task_threshold = slow_task_threshold
         self.high_rate_task_threshold = high_rate_task_threshold
         self.current_time = current_time
-        self.scheduled_start: Dict[trio.lowlevel.Task, float] = {}  # task: start_time
+        self.scheduled_start: Dict[Task, float] = {}  # task: start_time
         self.max_wait = 0.0
         self.task_step_start: Optional[float] = None
         self.slow_task_steps: DefaultDict[str, List[float]] = defaultdict(list)  # name: dt_list
@@ -41,7 +47,7 @@ class TaskStats(trio.abc.Instrument):
         self.rate_start = 0.0
         self.high_schedule_rates: DefaultDict[str, float] = defaultdict(float)  # name: max_rate
 
-    def task_scheduled(self, task: trio.lowlevel.Task) -> None:
+    def task_scheduled(self, task: Task) -> None:
         t = self.current_time()
         self.scheduled_start[task] = t
         if t - self.rate_start > RATE_MEASURE_PERIOD:
@@ -53,7 +59,7 @@ class TaskStats(trio.abc.Instrument):
             self.schedule_counts.clear()
         self.schedule_counts[task.name] += 1
 
-    def before_task_step(self, task: trio.lowlevel.Task) -> None:
+    def before_task_step(self, task: Task) -> None:
         t = self.current_time()
         start = self.scheduled_start.pop(task, None)
         if start:
@@ -61,7 +67,7 @@ class TaskStats(trio.abc.Instrument):
             self.max_wait = max(self.max_wait, dt)
             self.task_step_start = t
 
-    def after_task_step(self, task: trio.lowlevel.Task) -> None:
+    def after_task_step(self, task: Task) -> None:
         start = self.task_step_start
         if start:
             dt = self.current_time() - start

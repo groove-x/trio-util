@@ -63,6 +63,12 @@ def test_repr() -> None:
     assert repr(foo) == 'AsyncValue(10)'
 
 
+def test_valuewrapper() -> None:
+    wrapper = _ValueWrapper(5)
+    assert wrapper == _ValueWrapper(5)
+    assert wrapper != 5
+
+
 async def test_wait_value_held_for(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
     test1_done = trio.Event()
     test2_done = trio.Event()

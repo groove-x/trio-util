@@ -18,7 +18,7 @@ def _IDENTITY(x: T) -> T:
 
 class _ValueTuple(Generic[T_co], Tuple[T_co, ...]):
     """compose_values() returns arbitary named tuples. This represents that for type checkers."""
-    def __getattr__(self, item: str) -> T_co:
+    def __getattr__(self, item: str) -> T_co:  # pragma: no cover
         """We can't check attribute names are correct, but produce the right type."""
         raise NotImplementedError
 

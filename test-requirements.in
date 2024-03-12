@@ -1,5 +1,5 @@
 mock  # for AsyncMock
-mypy == 1.8.0  # Latest supporting Python 3.7
+mypy == 1.4.0  # Latest supporting Python 3.7
 pip-tools >= 5.5.0
 pylint
 pytest

@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
 from functools import partial
-from typing import Awaitable, Callable, AsyncGenerator, TYPE_CHECKING
+from typing import AsyncGenerator, TYPE_CHECKING
 
 import trio
 
 from ._awaitables import _wait_and_call
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from typing_extensions import ParamSpec
+    from typing import Awaitable, Callable
     Args = ParamSpec("Args")
 
 

@@ -5,7 +5,9 @@ from trio.testing import wait_all_tasks_blocked
 from trio_util import RepeatedEvent
 
 
-async def test_repeated_event_wait(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
+async def test_repeated_event_wait(
+    nursery: trio.Nursery, autojump_clock: trio.abc.Clock,
+) -> None:
     done = trio.Event()
     event = RepeatedEvent()
 
@@ -24,7 +26,9 @@ async def test_repeated_event_wait(nursery: trio.Nursery, autojump_clock: trio.a
     await done.wait()
 
 
-async def test_repeated_event_unqueued(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
+async def test_repeated_event_unqueued(
+    nursery: trio.Nursery, autojump_clock: trio.abc.Clock,
+) -> None:
     event = RepeatedEvent()
     counts = [0, 0]
 
@@ -58,7 +62,9 @@ async def test_repeated_event_unqueued(nursery: trio.Nursery, autojump_clock: tr
     assert counts == [2, 2]
 
 
-async def test_repeated_event_eventually_consistent(nursery: trio.Nursery, autojump_clock: trio.abc.Clock) -> None:
+async def test_repeated_event_eventually_consistent(
+    nursery: trio.Nursery, autojump_clock: trio.abc.Clock,
+) -> None:
     event = RepeatedEvent()
     counts = [0, 0]
 

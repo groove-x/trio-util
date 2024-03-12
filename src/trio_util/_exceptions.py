@@ -2,10 +2,7 @@ from collections import defaultdict
 from contextlib import _GeneratorContextManager
 from functools import wraps
 from inspect import iscoroutinefunction
-from typing import (
-    Any, Awaitable, Callable, Iterator, Protocol,
-    TYPE_CHECKING, Type, Dict, List, TypeVar,
-)
+from typing import Any, Callable, Iterator, TYPE_CHECKING, Type, Dict, List, TypeVar
 
 import trio
 
@@ -14,26 +11,28 @@ T = TypeVar('T')
 T_co = TypeVar('T_co', covariant=True)
 CallT = TypeVar('CallT', bound=Callable[..., object])
 
-if TYPE_CHECKING:
-    from typing_extensions import ParamSpec, TypeAlias
+if TYPE_CHECKING:  # pragma: no cover
+    from typing_extensions import ParamSpec, TypeAlias, Protocol
     ArgsT = ParamSpec('ArgsT')
     _GCM: TypeAlias = _GeneratorContextManager
+
+
+    class _ContextDecorator(Protocol[T_co]):
+        """An object that can be used as both a context manager and decorator."""
+
+        def __call__(self, func: CallT) -> CallT:
+            ...
+
+        def __enter__(self) -> T_co:
+            ...
+
+        # Use None, we know these don't completely suppress exceptions.
+        def __exit__(self, *args: object) -> None:
+            ...
 else:
     # Dummy value to make _GCM[T] work at runtime.
     _GCM = {T: _GeneratorContextManager}
 
-
-class _ContextDecorator(Protocol[T_co]):
-    """An object that can be used as both a context manager and decorator."""
-    def __call__(self, func: CallT) -> CallT:
-        ...
-
-    def __enter__(self) -> T_co:
-        ...
-
-    # Use None, we know these don't completely suppress exceptions.
-    def __exit__(self, *args: object) -> None:
-        ...
 
 
 class _AsyncFriendlyGeneratorContextManager(_GCM[T]):
@@ -67,12 +66,12 @@ def _async_friendly_contextmanager(
     manager works correctly as a decorator on async functions.
     """
     @wraps(func)
-    def helper(*args: 'ArgsT.args', **kwargs: 'ArgsT.kwargs') -> _ContextDecorator[T]:
+    def helper(*args: 'ArgsT.args', **kwargs: 'ArgsT.kwargs') -> '_ContextDecorator[T]':
         return _AsyncFriendlyGeneratorContextManager(func, args, kwargs)  # type: ignore
     return helper
 
 
-def defer_to_cancelled(*args: Type[Exception]) -> _ContextDecorator[None]:
+def defer_to_cancelled(*args: Type[Exception]) -> '_ContextDecorator[None]':
     """Context manager which defers MultiError exceptions to Cancelled.
 
     In the scope of this context manager, any raised trio.MultiError exception

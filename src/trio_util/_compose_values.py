@@ -2,8 +2,7 @@ from collections import namedtuple
 from contextlib import contextmanager, ExitStack
 from functools import partial
 from typing import (
-    ContextManager, Callable, Any, Dict, Generic, Iterator, Optional, Protocol, Tuple, TypeVar,
-    Union, overload,
+    ContextManager, Callable, Any, Dict, Generic, Iterator, Optional, Tuple, TypeVar, overload,
 )
 
 from ._async_value import AsyncValue
@@ -89,7 +88,8 @@ def _compose_values(
     _transform_: Optional[Callable[[_ValueTuple[T]], T_OUT]],
     value_map: Dict[str, AsyncValue[T]],
 ) -> Iterator[AsyncValue[Any]]:
-    transform: Callable[[_ValueTuple[T]], T_OUT] = _transform_ or _IDENTITY  # type: ignore[assignment]
+    transform: Callable[[_ValueTuple[T]], T_OUT]
+    transform = _transform_ or _IDENTITY  # type: ignore[assignment]
     async_vals = value_map.values()
     if not (async_vals and all(isinstance(av, AsyncValue) for av in async_vals)):
         raise TypeError('expected instances of AsyncValue')

@@ -12,7 +12,10 @@ T5 = TypeVar("T5")
 FillT = TypeVar("FillT")
 
 
-async def _azip(aiterables: Tuple[AsyncIterable[Any], ...], fillvalue: object, stop_any: bool) -> AsyncIterator[Tuple[Any, ...]]:
+async def _azip(
+    aiterables: Tuple[AsyncIterable[Any], ...],
+    fillvalue: object, stop_any: bool,
+) -> AsyncIterator[Tuple[Any, ...]]:
     iters = [item.__aiter__() for item in aiterables]
     while True:
         stop_count = 0
@@ -66,7 +69,9 @@ def azip(*aiterables: AsyncIterable[Any]) -> AsyncIterator[Any]:
 
 # One iterable, fillvalue is irrelevant.
 @overload
-def azip_longest(__it1: AsyncIterable[T1], *, fillvalue: object = ...) -> AsyncIterator[Tuple[T1]]: ...
+def azip_longest(
+    __it1: AsyncIterable[T1], *, fillvalue: object = ...,
+) -> AsyncIterator[Tuple[T1]]: ...
 # Two iterables
 @overload
 def azip_longest(
@@ -98,7 +103,9 @@ def azip_longest(
     __it1: AsyncIterable[T1], __it2: AsyncIterable[T2], __it3: AsyncIterable[T3],
     __it4: AsyncIterable[T4],
     *, fillvalue: FillT,
-) -> AsyncIterator[Tuple[Union[T1, FillT], Union[T2, FillT], Union[T3, FillT], Union[T4, FillT]]]: ...
+) -> AsyncIterator[Tuple[
+    Union[T1, FillT], Union[T2, FillT], Union[T3, FillT], Union[T4, FillT]
+]]: ...
 # Five iterables
 @overload
 def azip_longest(
@@ -129,6 +136,8 @@ def azip_longest(
     *aiterables: AsyncIterable[T],
     fillvalue: T,
 ) -> AsyncIterator[Tuple[T, ...]]: ...
-def azip_longest(*aiterables: AsyncIterable[Any], fillvalue: object = None) -> AsyncIterator[Tuple[Any, ...]]:
+def azip_longest(
+    *aiterables: AsyncIterable[Any], fillvalue: object = None,
+) -> AsyncIterator[Tuple[Any, ...]]:
     """async version of zip_longest() with parallel iteration"""
     return _azip(aiterables, fillvalue=fillvalue, stop_any=False)

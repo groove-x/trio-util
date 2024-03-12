@@ -1,17 +1,15 @@
 import functools
 import sys
 from contextlib import asynccontextmanager
-from typing import (
-    AsyncContextManager, AsyncGenerator, AsyncIterator, Callable, TYPE_CHECKING,
-    TypeVar,
-)
+from typing import AsyncGenerator, AsyncIterator, TYPE_CHECKING, TypeVar
 
 import trio
 from async_generator import aclosing
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from typing_extensions import ParamSpec
+    from typing import Callable, AsyncContextManager
     ArgsT = ParamSpec("ArgsT")
 YieldT = TypeVar("YieldT")
 
@@ -51,7 +49,10 @@ def trio_async_generator(
     """
     @asynccontextmanager
     @functools.wraps(wrapped)
-    async def wrapper(*args: 'ArgsT.args', **kwargs: 'ArgsT.kwargs') -> AsyncGenerator[AsyncIterator[YieldT], None]:
+    async def wrapper(
+        *args: 'ArgsT.args',
+        **kwargs: 'ArgsT.kwargs',
+    ) -> AsyncGenerator[AsyncIterator[YieldT], None]:
         send_channel: trio.MemorySendChannel[YieldT]
         receive_channel: trio.MemoryReceiveChannel[YieldT]
         send_channel, receive_channel = trio.open_memory_channel(0)

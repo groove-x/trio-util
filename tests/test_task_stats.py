@@ -1,9 +1,12 @@
+from typing import TYPE_CHECKING
 import logging
 
 import trio.testing
-import pytest
 
 from trio_util import TaskStats
+
+if TYPE_CHECKING:  # pragma: no cover
+    import pytest
 
 
 def test_task_stats(

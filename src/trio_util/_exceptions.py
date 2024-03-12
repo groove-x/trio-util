@@ -12,7 +12,7 @@ import trio
 
 T = TypeVar('T')
 T_co = TypeVar('T_co', covariant=True)
-AsyncCallT = TypeVar('AsyncCallT', bound=Callable[..., Awaitable[object]])
+CallT = TypeVar('CallT', bound=Callable[..., object])
 
 if TYPE_CHECKING:
     from typing_extensions import ParamSpec, TypeAlias
@@ -25,7 +25,7 @@ else:
 
 class _ContextDecorator(Protocol[T_co]):
     """An object that can be used as both a context manager and decorator."""
-    def __call__(self, func: AsyncCallT) -> AsyncCallT:
+    def __call__(self, func: CallT) -> CallT:
         ...
 
     def __enter__(self) -> T_co:
@@ -42,7 +42,7 @@ class _AsyncFriendlyGeneratorContextManager(_GCM[T]):
     manager can properly decorate async functions.
     """
 
-    def __call__(self, func: AsyncCallT) -> AsyncCallT:
+    def __call__(self, func: CallT) -> CallT:
         # We can't type the internals properly - inside the true branch the return type is async,
         # but we can't express that. It needs to be a typevar bound to callable, so that it fully
         # preserves overloads and things like that.

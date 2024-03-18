@@ -163,7 +163,87 @@ jobs:
 
   "python-3_10":
     docker:
-      - image: circleci/python:3.10-rc
+      - image: circleci/python:3.10
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "test-requirements.txt" }}
+            - v1-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r test-requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "test-requirements.txt" }}
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            make test PYTEST_ARGS="--cov-report=xml"
+      - codecov/upload:
+          file: ./coverage.xml
+      - run:
+          name: run lint
+          command: |
+            . venv/bin/activate
+            make lint
+      - run:
+          name: run type check
+          command: |
+            . venv/bin/activate
+            make type_check
+
+  "python-3_11":
+    docker:
+      - image: circleci/python:3.11
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "test-requirements.txt" }}
+            - v1-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r test-requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "test-requirements.txt" }}
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            make test PYTEST_ARGS="--cov-report=xml"
+      - codecov/upload:
+          file: ./coverage.xml
+      - run:
+          name: run lint
+          command: |
+            . venv/bin/activate
+            make lint
+      - run:
+          name: run type check
+          command: |
+            . venv/bin/activate
+            make type_check
+
+  "python-3_12":
+    docker:
+      - image: circleci/python:3.12
 
     working_directory: ~/repo
 
@@ -210,3 +290,5 @@ workflows:
       - "python-3_8"
       - "python-3_9"
       - "python-3_10"
+      - "python-3_11"
+      - "python-3_12"

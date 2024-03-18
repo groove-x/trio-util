@@ -18,7 +18,6 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.7
-            - v1-dependencies-
       - run:
           name: install dependencies
           command: |
@@ -56,7 +55,6 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "test-requirements_trio-0.12.txt" }}-python-3.7
-            - v1-dependencies-
       - run:
           name: install dependencies
           command: |
@@ -94,7 +92,6 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.8
-            - v1-dependencies-
       - run:
           name: install dependencies
           command: |
@@ -132,7 +129,6 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.9
-            - v1-dependencies-
       - run:
           name: install dependencies
           command: |
@@ -172,7 +168,6 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.10
-            - v1-dependencies-
       - run:
           name: install dependencies
           command: |
@@ -212,7 +207,6 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.11
-            - v1-dependencies-
       - run:
           name: install dependencies
           command: |
@@ -252,17 +246,16 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.12
-            - v1-dependencies-
       - run:
           name: install dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
             pip install -r test-requirements.txt
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.12
-            - v1-dependencies-
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.12
       - run:
           name: run tests
           command: |

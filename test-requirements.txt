@@ -46,7 +46,8 @@ pep517==0.10.0
     # via pip-tools
 pip-tools==6.2.0
     # via -r test-requirements.in
-pluggy==1.4.0
+pluggy==1.4.0; python_version >= "3.8"
+pluggy<1.4.0; python_version < "3.8"
     # via pytest
 py==1.11.0
     # via pytest
@@ -54,7 +55,8 @@ pylint==3.0.0a3
     # via -r test-requirements.in
 pyparsing==2.4.7
     # via packaging
-pytest==8.1.1
+pytest==8.1.1; python_version >= "3.8"
+pytest<8.1.1; python_version < "3.8"
     # via
     #   -r test-requirements.in
     #   pytest-cov

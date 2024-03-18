@@ -4,7 +4,8 @@
 #
 #    pip-compile --output-file=test-requirements.txt setup.py test-requirements.in
 #
-astroid==2.5.8
+astroid==3.1.0; python_version >= "3.8"
+astroid<3.1.0; python_version < "3.8"
     # via pylint
 async-generator==1.10
     # via
@@ -51,7 +52,8 @@ pluggy<1.4.0; python_version < "3.8"
     # via pytest
 py==1.11.0
     # via pytest
-pylint==3.0.0a3
+pylint==3.1.0; python_version >= "3.8"
+pylint<3.1.0; python_version < "3.8"
     # via -r test-requirements.in
 pyparsing==2.4.7
     # via packaging
@@ -86,7 +88,8 @@ typing-extensions==4.1.1
     # via mypy
 wheel==0.36.2
     # via pip-tools
-wrapt==1.12.1
+wrapt==1.16.0; python_version >= "3.8"
+wrapt<1.16.0; python_version < "3.8"
     # via astroid
 
 # The following packages are considered to be unsafe in a requirements file:

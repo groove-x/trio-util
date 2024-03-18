@@ -1,5 +1,5 @@
 [MASTER]
-disable=bad-whitespace,
+disable=unnecessary-dunder-call,
         blacklisted-name,
         duplicate-code,
         fixme,

@@ -7,79 +7,6 @@ orbs:
   codecov: codecov/codecov@1.1.5
 
 jobs:
-  "python-3_7":
-    docker:
-      - image: cimg/python:3.7
-
-    working_directory: ~/repo
-
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.7
-      - run:
-          name: install dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r test-requirements.txt
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.7
-      - run:
-          name: run tests
-          command: |
-            . venv/bin/activate
-            make test
-      - run:
-          name: run lint
-          command: |
-            . venv/bin/activate
-            make lint
-      - run:
-          name: run type check
-          command: |
-            . venv/bin/activate
-            make type_check
-
-  "python-3_7_trio-0_12":
-    docker:
-      - image: cimg/python:3.7
-
-    working_directory: ~/repo
-
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "test-requirements_trio-0.12.txt" }}-python-3.7
-      - run:
-          name: install dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r test-requirements_trio-0.12.txt
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "test-requirements_trio-0.12.txt" }}-python-3.7
-      - run:
-          name: run tests
-          command: |
-            . venv/bin/activate
-            make test
-      - run:
-          name: run lint
-          command: |
-            . venv/bin/activate
-            make lint
-      - run:
-          name: run type check
-          command: |
-            . venv/bin/activate
-            make type_check
 
   "python-3_8":
     docker:
@@ -278,8 +205,6 @@ workflows:
   version: 2
   build:
     jobs:
-      - "python-3_7"
-      - "python-3_7_trio-0_12"
       - "python-3_8"
       - "python-3_9"
       - "python-3_10"

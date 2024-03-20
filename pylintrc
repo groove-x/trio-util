@@ -1,6 +1,5 @@
 [MASTER]
-disable=unnecessary-dunder-call,
-        blacklisted-name,
+disable=blacklisted-name,
         duplicate-code,
         fixme,
         import-outside-toplevel,
@@ -23,6 +22,9 @@ disable=unnecessary-dunder-call,
         unused-argument,
         wrong-spelling-in-comment,
         wrong-spelling-in-docstring
+
+# Minimum supported python version
+py-version=3.7
 
 [TYPECHECK]
 contextmanager-decorators=contextlib.contextmanager,

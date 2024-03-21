@@ -17,7 +17,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.7
+            - v1-dependencies-{{ checksum "test-requirements_python-3.7.txt" }}-python-3.7
       - run:
           name: install dependencies
           command: |
@@ -27,7 +27,7 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.7
+          key: v1-dependencies-{{ checksum "test-requirements_python-3.7.txt" }}-python-3.7
       - run:
           name: run tests
           command: |

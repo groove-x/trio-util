@@ -1,24 +1,42 @@
 from collections import namedtuple
 from contextlib import contextmanager, ExitStack
 from functools import partial
-from typing import ContextManager, Callable, Any, TypeVar, overload
+from typing import (
+    ContextManager, Callable, Any, Dict, Generic, Iterator, Optional, Tuple, TypeVar, overload,
+)
 
 from ._async_value import AsyncValue
 
+T_OUT = TypeVar('T_OUT')
+T = TypeVar('T')
+T_co = TypeVar('T_co', covariant=True)
 
-def _IDENTITY(x):
+
+def _IDENTITY(x: T) -> T:
     return x
 
 
-T_OUT = TypeVar('T_OUT')
+class _ValueTuple(Generic[T_co], Tuple[T_co, ...]):
+    """compose_values() returns arbitary named tuples. This represents that for type checkers."""
+    def __getattr__(self, item: str) -> T_co:  # pragma: no cover
+        """We can't check attribute names are correct, but produce the right type."""
+        raise NotImplementedError
 
 
 @overload
-def compose_values(**value_map: AsyncValue) -> ContextManager[AsyncValue]: ...
+def compose_values(
+    *, _transform_: None = None,
+    **value_map: AsyncValue[T],
+) -> ContextManager[AsyncValue[_ValueTuple[T]]]: ...
 @overload
-def compose_values(*, _transform_: Callable[[Any], T_OUT],
-                   **value_map: AsyncValue) -> ContextManager[AsyncValue[T_OUT]]: ...
-def compose_values(*, _transform_=None, **value_map):
+def compose_values(
+    *, _transform_: Callable[[_ValueTuple[T]], T_OUT],
+    **value_map: AsyncValue[T],
+) -> ContextManager[AsyncValue[T_OUT]]: ...
+def compose_values(
+    *, _transform_: Optional[Callable[[_ValueTuple[T]], T_OUT]] = None,
+    **value_map: AsyncValue[T],
+) -> ContextManager[AsyncValue[Any]]:
     """Context manager providing a composite of multiple AsyncValues
 
     The composite object itself is an AsyncValue, with the `value` of each
@@ -66,18 +84,22 @@ def compose_values(*, _transform_=None, **value_map):
 
 
 @contextmanager
-def _compose_values(_transform_, value_map):
-    transform = _transform_ or _IDENTITY
+def _compose_values(
+    _transform_: Optional[Callable[[_ValueTuple[T]], T_OUT]],
+    value_map: Dict[str, AsyncValue[T]],
+) -> Iterator[AsyncValue[Any]]:
+    transform: Callable[[_ValueTuple[T]], T_OUT]
+    transform = _transform_ or _IDENTITY  # type: ignore[assignment]
     async_vals = value_map.values()
     if not (async_vals and all(isinstance(av, AsyncValue) for av in async_vals)):
         raise TypeError('expected instances of AsyncValue')
     value_type = namedtuple('CompositeValue', value_map.keys())  # type: ignore[misc]
-    composite_value = value_type._make(av.value for av in async_vals)
+    composite_value: Any = value_type._make(av.value for av in async_vals)
     composite = AsyncValue(transform(composite_value))
 
     # This dummy wait_value() predicate hooks into each value and updates
     # the composite as a side effect.
-    def _update_composite(name, val):
+    def _update_composite(name: str, val: T) -> bool:
         nonlocal composite_value
         composite_value = composite_value._replace(**{name: val})
         composite.value = transform(composite_value)

@@ -34,6 +34,7 @@ An assortment of utilities for the Trio async/await framework, including:
     license='MIT',
     packages=[pkg_name],
     package_dir={'': 'src'},
+    package_data={'trio_util': ['py.typed']},
     install_requires=[
         'async_generator',
         'trio >= 0.11.0'

@@ -1,24 +1,31 @@
+from typing import TYPE_CHECKING
 import logging
 
-import trio
+import trio.testing
 
 from trio_util import TaskStats
 
+if TYPE_CHECKING:  # pragma: no cover
+    import pytest
 
-def test_task_stats(caplog, autojump_clock):
+
+def test_task_stats(
+    caplog: 'pytest.LogCaptureFixture',
+    autojump_clock: trio.testing.MockClock,
+) -> None:
     caplog.set_level(logging.INFO)
 
-    async def run():
+    async def run() -> None:
         async with trio.open_nursery() as nursery:
             @nursery.start_soon
-            async def _slow_step_task():
+            async def _slow_step_task() -> None:
                 for i in range(3):
                     # simulate a long step time
                     autojump_clock.jump((i + 1) * .1)
                     await trio.sleep(0)
 
             @nursery.start_soon
-            async def _high_reschedule_rate_task():
+            async def _high_reschedule_rate_task() -> None:
                 for _ in range(60):
                     await trio.sleep(1/60)
 

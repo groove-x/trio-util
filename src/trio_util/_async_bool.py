@@ -1,7 +1,7 @@
 from ._async_value import AsyncValue
 
 
-class AsyncBool(AsyncValue):
+class AsyncBool(AsyncValue[bool]):
     """Boolean wrapper offering the ability to wait for a value or transition.
 
     Synopsis::
@@ -21,5 +21,5 @@ class AsyncBool(AsyncValue):
     same as AsyncValue.
     """
 
-    def __init__(self, value=False):
+    def __init__(self, value: bool = False) -> None:
         super().__init__(value)

@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Any, Callable
 
 import pytest
 import trio
@@ -6,13 +7,14 @@ from trio.testing import wait_all_tasks_blocked
 
 from trio_util import AsyncValue, compose_values
 
-async def test_compose_values(nursery):
+
+async def test_compose_values(nursery: trio.Nursery) -> None:
     async_x = AsyncValue(42)
     async_y = AsyncValue(0)
     done = trio.Event()
 
     @nursery.start_soon
-    async def _wait():
+    async def _wait() -> None:
         with compose_values(x=async_x, y=async_y) as composite:
             assert (composite.value.x, composite.value.y) == (42, 0)
             assert await composite.wait_value(lambda val: val.x < 0 < val.y) == (-1, 10)
@@ -34,19 +36,19 @@ async def test_compose_values(nursery):
     partial(compose_values, AsyncValue(0)),
     partial(compose_values, x=10),
 ])
-async def test_compose_values_wrong_usage(context):
+async def test_compose_values_wrong_usage(context: Callable[[], object]) -> None:
     with pytest.raises(TypeError):
-        with context():
+        with context():  # type: ignore
             pass
 
 
-async def test_compose_values_nested(nursery):
+async def test_compose_values_nested(nursery: trio.Nursery) -> None:
     async_x, async_y = AsyncValue(1), AsyncValue(2)
-    async_text = AsyncValue('foo')
+    async_text: AsyncValue[Any] = AsyncValue('foo')
     done = trio.Event()
 
     @nursery.start_soon
-    async def _wait():
+    async def _wait() -> None:
         with compose_values(x=async_x, y=async_y) as async_xy, \
                 compose_values(xy=async_xy, text=async_text) as composite:
             assert composite.value == ((1, 2), 'foo')
@@ -63,7 +65,7 @@ async def test_compose_values_nested(nursery):
     await done.wait()
 
 
-async def test_compose_values_transform():
+async def test_compose_values_transform() -> None:
     async_x = AsyncValue(42)
     async_y = AsyncValue(2)
 
@@ -74,7 +76,7 @@ async def test_compose_values_transform():
         assert composite.value == 420
 
 
-async def test_compose_values_fast_transition():
+async def test_compose_values_fast_transition() -> None:
     # Confirm that composed values are not subject to issues with missed
     # wakeups.  This is true because the implementation relays value changes
     # synchronously from the value setter.
@@ -82,7 +84,7 @@ async def test_compose_values_fast_transition():
     N = 5
 
     with compose_values(e=event) as composite:
-        async def _listener(expected):
+        async def _listener(expected: Any) -> None:
             await composite.wait_value(expected)
 
         async with trio.open_nursery() as nursery:

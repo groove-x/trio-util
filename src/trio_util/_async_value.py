@@ -1,6 +1,9 @@
 # pylint: disable=line-too-long,multiple-statements
 from contextlib import contextmanager
-from typing import TypeVar, Generic, AsyncIterator, Tuple, ContextManager, Callable, overload
+from typing import (
+    Any, Generator, Set, TypeVar, Generic, AsyncIterator, Tuple,
+    ContextManager, Callable, Union, cast, overload, TYPE_CHECKING,
+)
 
 import trio
 
@@ -11,6 +14,9 @@ except ImportError:  # pragma: no cover
 
 from ._ref_counted_default_dict import _RefCountedDefaultDict
 
+if TYPE_CHECKING:
+    from typing_extensions import TypeGuard
+
 
 class _WaitQueue:
     """Fast replacement for trio.ParkingLot.
@@ -20,46 +26,48 @@ class _WaitQueue:
 
     __slots__ = ['tasks']
 
-    def __init__(self):
-        self.tasks = set()
+    def __init__(self) -> None:
+        self.tasks: Set[lowlevel.Task] = set()
 
-    async def park(self):
+    async def park(self) -> None:
         task = lowlevel.current_task()
         self.tasks.add(task)
 
-        def abort_fn(_):
+        def abort_fn(_: object) -> lowlevel.Abort:
             self.tasks.remove(task)
             return lowlevel.Abort.SUCCEEDED
 
         await lowlevel.wait_task_rescheduled(abort_fn)
 
-    def unpark_all(self):
+    def unpark_all(self) -> None:
         for task in self.tasks:
             lowlevel.reschedule(task)
         self.tasks.clear()
 
 
-def _ANY_TRANSITION(value, old_value):
+def _ANY_TRANSITION(value: object, old_value: object) -> bool:
     return True
 
 
-def _ANY_VALUE(value):
+def _ANY_VALUE(value: object) -> bool:
     return True
 
 
-_NONE = object()
+_UNSET: Any = object()
 T = TypeVar('T')
-T_OUT = TypeVar('T_OUT')
+T2 = TypeVar('T2')
+T3 = TypeVar('T3')
 P = Callable[[T], bool]
 P2 = Callable[[T, T], bool]
+CallT = TypeVar('CallT', bound=Callable[..., object])
 
 
-class _Result:
+class _Result(Generic[T]):
     __slots__ = ['event', 'value']
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.event = _WaitQueue()
-        self.value = None
+        self.value: T = _UNSET
 
 
 # TODO: hash functools.partial by func + args + keywords when possible
@@ -74,22 +82,25 @@ class _ValueWrapper:
 
     __slots__ = ['value']
 
-    def __new__(cls, value_or_predicate):
+    def __new__(cls, value_or_predicate: object) -> Any:
         return value_or_predicate if callable(value_or_predicate) else super().__new__(cls)
 
-    def __init__(self, value):
+    def __init__(self, value: object) -> None:
         self.value = value
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         try:
             return hash(self.value)
         except TypeError:
             return super().__hash__()
 
-    def __eq__(self, other):
-        return self.value.__eq__(other.value)
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, _ValueWrapper):
+            return self.value.__eq__(other.value)
+        return NotImplemented
 
-    def __call__(self, x, *args):
+    def __call__(self, x: object, *args: object) -> TypeGuard[Any]:
+        # Not TypeGuard, but all usages below may have a typeguard passed in.
         return x == self.value
 
 
@@ -149,15 +160,19 @@ class AsyncValue(Generic[T]):
     predicates are grouped when possible, reducing N to the number of active
     predicates.
     """
+    _value: T
+    _level_results: _RefCountedDefaultDict[P[T], _Result[T]]
+    _edge_results: _RefCountedDefaultDict[P2[T], _Result[Tuple[T, T]]]
+    _transforms: _RefCountedDefaultDict[Callable[[T], Any], 'AsyncValue[Any]']
 
-    def __init__(self, value: T):
+    def __init__(self, value: T) -> None:
         self._value = value
         self._level_results = _RefCountedDefaultDict(_Result)
         self._edge_results = _RefCountedDefaultDict(_Result)
         # predicate: AsyncValue
-        self._transforms = _RefCountedDefaultDict(lambda: AsyncValue(_NONE))
+        self._transforms = _RefCountedDefaultDict(lambda: AsyncValue(_UNSET))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.value})"
 
     @property
@@ -166,32 +181,56 @@ class AsyncValue(Generic[T]):
         return self._value
 
     @value.setter
-    def value(self, x: T):
+    def value(self, x: T) -> None:
         if self._value != x:
             old = self._value
             new = self._value = x
-            for f, result in self._level_results.items():
+            for f, level_result in self._level_results.items():
                 if f(new):
-                    result.value = new
-                    result.event.unpark_all()
-            for f, result in self._edge_results.items():
-                if f(new, old):
-                    result.value = (new, old)
-                    result.event.unpark_all()
-            for f, output in self._transforms.items():
-                output.value = f(new)
+                    level_result.value = new
+                    level_result.event.unpark_all()
+            for f2, edge_result in self._edge_results.items():
+                if f2(new, old):
+                    edge_result.value = (new, old)
+                    edge_result.event.unpark_all()
+            for f3, output in self._transforms.items():
+                output.value = f3(new)
 
+    @overload
     @staticmethod
-    async def _wait_predicate(result_map, predicate):
+    async def _wait_predicate(
+        result_map: _RefCountedDefaultDict[Callable[..., Any], _Result[T2]],
+        predicate: Callable[[T2], TypeGuard[T3]],
+    ) -> T3: ...
+    @overload
+    @staticmethod
+    async def _wait_predicate(
+        result_map: _RefCountedDefaultDict[CallT, _Result[T3]], predicate: CallT,
+    ) -> T3: ...
+    @staticmethod
+    async def _wait_predicate(
+        result_map: _RefCountedDefaultDict[Callable[..., Any], _Result[T2]],
+        predicate: Callable[..., Any],
+    ) -> Any:
         with result_map.open_ref(predicate) as result:
             await result.event.park()
         return result.value
 
+    # The self-type is used here so the return value is always T2, even without a predicate.
     @overload
-    async def wait_value(self, value: T, *, held_for=0.) -> T: ...
+    async def wait_value(self: 'AsyncValue[T2]', __value: T2, *, held_for: float = 0.0) -> T2: ...
     @overload
-    async def wait_value(self, predicate: P, *, held_for=0.) -> T: ...
-    async def wait_value(self, value_or_predicate, *, held_for=0.):
+    async def wait_value(
+        self,
+        __predicate: 'Callable[[T], TypeGuard[T2]]', *, held_for: float = 0.0,
+    ) -> T2: ...
+    @overload
+    async def wait_value(self: 'AsyncValue[T2]', __predicate: P[T2], *, held_for: float = 0.0) -> T2: ...
+    async def wait_value(
+        self, value_or_predicate: Union[T2, P[T2], 'Callable[[T], TypeGuard[T2]]'],
+        *,
+        held_for: float = 0.0,
+    ) -> T2:
         """
         Wait until given predicate f(value) is True.
 
@@ -207,7 +246,8 @@ class AsyncValue(Generic[T]):
         returns value which satisfied the predicate
         (when held_for > 0, it's the most recent value)
         """
-        predicate = _ValueWrapper(value_or_predicate)
+        value: T2
+        predicate: Callable[[T], TypeGuard[T2]] = _ValueWrapper(value_or_predicate)
         while True:
             if not predicate(self._value):
                 value = await self._wait_predicate(self._level_results, predicate)
@@ -224,11 +264,29 @@ class AsyncValue(Generic[T]):
     # NOTE: it's hard to make both type check and lint happy with generator overloads
     # https://github.com/python/mypy/issues/10301
     # https://github.com/PyCQA/astroid/issues/1015
+    # eval() returns Any, so we ignore wrong types.
+    # The self-type is used here so the return value is always T2, even without a predicate.
     @overload
-    async def eventual_values(self, value: T, held_for=0.) -> AsyncIterator[T]: yield self._value
+    async def eventual_values(
+        self: 'AsyncValue[T2]', __value: T2, held_for: float = 0.0,
+    ) -> AsyncIterator[T2]: yield eval('')
     @overload
-    async def eventual_values(self, predicate: P = _ANY_VALUE, held_for=0.) -> AsyncIterator[T]: yield self._value
-    async def eventual_values(self, value_or_predicate=_ANY_VALUE, held_for=0.):
+    async def eventual_values(
+        self,
+        __predicate: 'Callable[[T], TypeGuard[T2]]',
+        held_for: float = 0.0,
+    ) -> AsyncIterator[T2]: yield eval('')
+    @overload
+    async def eventual_values(
+        self: 'AsyncValue[T2]',
+        __predicate: P[T2] = _ANY_VALUE,
+        held_for: float = 0.0,
+    ) -> AsyncIterator[T2]: yield self._value
+    async def eventual_values(
+        self,
+        value_or_predicate: Union[T2, P[T2], 'Callable[[T], TypeGuard[T2]]'] = _ANY_VALUE,
+        held_for: float = 0.0,
+    ) -> AsyncIterator[T2]:
         """
         Yield values matching the predicate with eventual consistency
 
@@ -260,16 +318,17 @@ class AsyncValue(Generic[T]):
                     with trio.move_on_after(held_for):
                         await not_predicate.event.park()
                         continue
-                yield last_value
+                # predicate() has been checked, we know this is the matching value.
+                yield last_value  # type: ignore[misc]
                 if self._value == last_value:
                     await not_last_value.event.park()
 
     # TODO: implement wait_transition() using transitions()
     @overload
-    async def wait_transition(self, value: T) -> Tuple[T, T]: ...
+    async def wait_transition(self, __value: T) -> Tuple[T, T]: ...
     @overload
-    async def wait_transition(self, predicate: P2 = _ANY_TRANSITION) -> Tuple[T, T]: ...
-    async def wait_transition(self, value_or_predicate=_ANY_TRANSITION):
+    async def wait_transition(self, __predicate: P2[T] = _ANY_TRANSITION) -> Tuple[T, T]: ...
+    async def wait_transition(self, value_or_predicate: Union[T, P2[T]] = _ANY_TRANSITION) -> Tuple[T, T]:
         """
         Wait until given predicate f(value, old_value) is True.
 
@@ -286,13 +345,14 @@ class AsyncValue(Generic[T]):
 
         returns (value, old_value) which satisfied the predicate
         """
-        return await self._wait_predicate(self._edge_results, _ValueWrapper(value_or_predicate))
+        value: P2[T] = _ValueWrapper(value_or_predicate)
+        return await self._wait_predicate(self._edge_results, value)
 
     @overload
-    async def transitions(self, value: T) -> AsyncIterator[Tuple[T, T]]: yield (self._value, self._value)
+    async def transitions(self, __value: T) -> AsyncIterator[Tuple[T, T]]: yield (self._value, self._value)
     @overload
-    async def transitions(self, predicate: P2 = _ANY_TRANSITION) -> AsyncIterator[Tuple[T, T]]: yield (self._value, self._value)
-    async def transitions(self, value_or_predicate=_ANY_TRANSITION):
+    async def transitions(self, __predicate: P2[T] = _ANY_TRANSITION) -> AsyncIterator[Tuple[T, T]]: yield (self._value, self._value)
+    async def transitions(self, value_or_predicate: Union[T, P2[T]] = _ANY_TRANSITION) -> AsyncIterator[Tuple[T, T]]:
         """
         Yield (value, old_value) for transitions matching the predicate
 
@@ -324,8 +384,7 @@ class AsyncValue(Generic[T]):
                 yield result.value
 
     # TODO: make the output's `value` read-only somehow
-    def open_transform(self, function: Callable[[T], T_OUT]) \
-            -> ContextManager['AsyncValue[T_OUT]']:
+    def open_transform(self, function: Callable[[T], T2]) -> ContextManager['AsyncValue[T2]']:
         """Yield a derived AsyncValue with the given transform applied
 
         Synopsis::
@@ -340,8 +399,11 @@ class AsyncValue(Generic[T]):
         return self._open_transform(function)
 
     @contextmanager
-    def _open_transform(self, function):
+    def _open_transform(
+        self, function: Callable[[T], T2],
+    ) -> Generator['AsyncValue[T2]', None, None]:
+        output: AsyncValue[T2]
         with self._transforms.open_ref(function) as output:
-            if output.value is _NONE:
+            if output.value is _UNSET:
                 output.value = function(self.value)
             yield output

@@ -1,1 +1,2 @@
 include LICENSE
+include src/trio_util/py.typed

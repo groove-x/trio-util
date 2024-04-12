@@ -32,9 +32,9 @@ mccabe==0.6.1
     # via pylint
 mock==4.0.3
     # via -r test-requirements.in
-mypy==0.942
+mypy==1.4.0
     # via -r test-requirements.in
-mypy-extensions==0.4.3
+mypy-extensions==1.0.0
     # via mypy
 outcome==1.1.0
     # via

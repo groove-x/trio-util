@@ -1,13 +1,15 @@
+from typing import Awaitable, Callable
+
 import trio
 
 
-async def _wait_and_call(f1, f2):
+async def _wait_and_call(f1: Callable[[], Awaitable[object]], f2: Callable[[], object]) -> None:
     """await on f1() and call f2()"""
     await f1()
     f2()
 
 
-async def wait_any(*args):
+async def wait_any(*args: Callable[[], Awaitable[object]]) -> None:
     """Wait until any of the given async functions are completed.
 
     Equivalent to creating a new nursery and calling `start_soon()` on
@@ -25,7 +27,7 @@ async def wait_any(*args):
             nursery.start_soon(_wait_and_call, f, cancel)
 
 
-async def wait_all(*args):
+async def wait_all(*args: Callable[[], Awaitable[object]]) -> None:
     """Wait until all of the given async functions are completed.
 
     Equivalent to creating a new nursery and calling `start_soon()` on

@@ -1,11 +1,13 @@
+from typing import ContextManager, Type
+
 import pytest
 import trio
 
 from trio_util import defer_to_cancelled, multi_error_defer_to
 
 
-def _cancelled():
-    return trio.Cancelled._create()  # type: ignore[attr-defined]
+def _cancelled() -> trio.Cancelled:
+    return trio.Cancelled._create()  # type: ignore[attr-defined, no-any-return]
 
 
 class MyExceptionBase(Exception):
@@ -41,31 +43,35 @@ class MyException(MyExceptionBase):
      trio.MultiError([_cancelled(), KeyError()]),
      trio.MultiError),
 ])
-async def test_defer_to_cancelled(context, to_raise, expected_exception):
+async def test_defer_to_cancelled(
+    context: ContextManager[None],
+    to_raise: BaseException,
+    expected_exception: Type[BaseException],
+) -> None:
     with pytest.raises(expected_exception):
         with context:
             raise to_raise
 
 
-async def test_defer_to_cancelled_simple_cancel():
+async def test_defer_to_cancelled_simple_cancel() -> None:
     with trio.move_on_after(1) as cancel_scope:
         with defer_to_cancelled(ValueError):
             cancel_scope.cancel()
             await trio.sleep(0)
 
 
-async def test_defer_to_cancelled_decorating_async():
+async def test_defer_to_cancelled_decorating_async() -> None:
     @defer_to_cancelled(ValueError)
-    async def foo():
+    async def foo() -> None:
         raise trio.MultiError([_cancelled(), ValueError()])
 
     with pytest.raises(trio.Cancelled):
         await foo()
 
 
-async def test_defer_to_cancelled_decorating_sync():
+async def test_defer_to_cancelled_decorating_sync() -> None:
     @defer_to_cancelled(ValueError)
-    def foo():
+    def foo() -> None:
         raise trio.MultiError([_cancelled(), ValueError()])
 
     with pytest.raises(trio.Cancelled):
@@ -117,22 +123,26 @@ async def test_defer_to_cancelled_decorating_sync():
      trio.MultiError([_cancelled(), KeyError()]),
      RuntimeError),
 ])
-async def test_multi_error_defer_to(context, to_raise, expected_exception):
+async def test_multi_error_defer_to(
+    context: ContextManager[None],
+    to_raise: BaseException,
+    expected_exception: Type[BaseException],
+) -> None:
     with pytest.raises(expected_exception):
         with context:
             raise to_raise
 
 
-async def test_multi_error_defer_simple_cancel():
+async def test_multi_error_defer_simple_cancel() -> None:
     with trio.move_on_after(1) as cancel_scope:
         with multi_error_defer_to(trio.Cancelled, ValueError):
             cancel_scope.cancel()
             await trio.sleep(0)
 
 
-async def test_multi_error_defer_decorating_async():
+async def test_multi_error_defer_decorating_async() -> None:
     @multi_error_defer_to(trio.Cancelled, ValueError)
-    async def foo():
+    async def foo() -> None:
         raise trio.MultiError([_cancelled(), ValueError()])
 
     with pytest.raises(trio.Cancelled):

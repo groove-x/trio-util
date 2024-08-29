@@ -1,5 +1,4 @@
 import functools
-import sys
 from contextlib import asynccontextmanager
 
 import trio
@@ -58,12 +57,12 @@ def trio_async_generator(wrapped):
                                 except trio.BrokenResourceError:
                                     return
                                 break
-                            except BaseException:  # pylint: disable=broad-except
+                            except BaseException as e:  # pylint: disable=broad-except
                                 # If send_channel.send() raised (e.g. Cancelled),
                                 # throw the raised exception back into the generator,
                                 # and get the next yielded value to forward.
                                 try:
-                                    value = await agen.athrow(*sys.exc_info())
+                                    value = await agen.athrow(e)
                                 except StopAsyncIteration:
                                     return
 

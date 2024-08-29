@@ -12,7 +12,7 @@ async def _azip(*aiterables, fillvalue, stop_any):
                 items[i] = await iterator.__anext__()
             except StopAsyncIteration:
                 nonlocal stop_count
-                stop_count += 1  # pylint: disable=undefined-variable
+                stop_count += 1
 
         async with trio.open_nursery() as nursery:
             for i, iterator in enumerate(iters):

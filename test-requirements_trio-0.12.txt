@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=test-requirements.txt setup.py test-requirements.in
 #
-astroid==2.5.8
+astroid==3.1.0
     # via pylint
 async-generator==1.10
     # via
@@ -20,11 +20,15 @@ click==8.0.1
     # via pip-tools
 coverage==5.5
     # via pytest-cov
+dill==0.3.8
+    # via pylint
 idna==3.1
     # via trio
 iniconfig==1.1.1
     # via pytest
 isort==5.8.0
+    # via pylint
+mccabe==0.6.1
     # via pylint
 lazy-object-proxy==1.6.0
     # via astroid
@@ -46,11 +50,13 @@ pep517==0.10.0
     # via pip-tools
 pip-tools==6.2.0
     # via -r test-requirements.in
+platformdirs==4.2.0
+    # via pylint
 pluggy==0.13.1
     # via pytest
 py==1.10.0
     # via pytest
-pylint==3.0.0a3
+pylint==3.1.0
     # via -r test-requirements.in
 pyparsing==2.4.7
     # via packaging
@@ -72,6 +78,8 @@ toml==0.10.2
     #   pep517
     #   pylint
     #   pytest
+tomlkit==0.12.4
+    # via pylint
 trio==0.12.0
     # via
     #   pytest-trio
@@ -79,7 +87,10 @@ trio==0.12.0
 types-mock==4.0.1
     # via -r test-requirements.in
 typing-extensions==4.1.1
-    # via mypy
+    # via
+    #   astroid
+    #   mypy
+    #   pylint
 wheel==0.36.2
     # via pip-tools
 wrapt==1.12.1

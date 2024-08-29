@@ -24,7 +24,7 @@ disable=blacklisted-name,
         wrong-spelling-in-docstring
 
 # Minimum supported python version
-py-version=3.7
+py-version=3.8
 
 [TYPECHECK]
 contextmanager-decorators=contextlib.contextmanager,

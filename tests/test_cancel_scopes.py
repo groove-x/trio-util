@@ -1,6 +1,6 @@
-import trio
+from unittest.mock import AsyncMock
 
-from mock import AsyncMock  # type: ignore[attr-defined]
+import trio
 
 from trio_util import move_on_when, run_and_cancelling
 

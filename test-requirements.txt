@@ -35,8 +35,6 @@ isort==5.8.0
     # via pylint
 mccabe==0.6.1
     # via pylint
-mock==4.0.3
-    # via -r test-requirements.in
 mypy==0.942
     # via -r test-requirements.in
 mypy-extensions==0.4.3
@@ -90,8 +88,6 @@ trio==0.18.0
     # via
     #   pytest-trio
     #   trio_util (setup.py)
-types-mock==4.0.1
-    # via -r test-requirements.in
 typing-extensions==4.1.1
     # via
     #   astroid

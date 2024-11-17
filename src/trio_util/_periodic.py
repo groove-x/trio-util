@@ -18,7 +18,7 @@ async def periodic(period) -> AsyncGenerator[Tuple[float, Optional[float]], None
     """
     t0 = trio.current_time()
     t_start = t0
-    delta_time = None
+    delta_time: Optional[float] = None
     while True:
         yield t_start - t0, delta_time
         await trio.sleep_until(t_start + period)

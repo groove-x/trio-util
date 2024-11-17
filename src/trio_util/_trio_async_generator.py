@@ -39,7 +39,7 @@ def trio_async_generator(wrapped):
     @asynccontextmanager
     @functools.wraps(wrapped)
     async def wrapper(*args, **kwargs):
-        send_channel, receive_channel = trio.open_memory_channel(0)
+        send_channel, receive_channel = trio.open_memory_channel(0)  # type: ignore[var-annotated]
         async with trio.open_nursery() as nursery:
             async def adapter():
                 async with send_channel, aclosing(wrapped(*args, **kwargs)) as agen:

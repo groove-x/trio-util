@@ -180,6 +180,9 @@ and :func:`itertools.zip_longest`.
 
 exceptions
 ----------
+(These are only supported for older versions of Trio that used ``MultiError``
+rather than ``ExceptionGroup``.)
+
 .. autofunction:: multi_error_defer_to
     :no-auto-options:
     :with:

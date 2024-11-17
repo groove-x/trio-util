@@ -7,10 +7,7 @@
 astroid==3.1.0
     # via pylint
 async-generator==1.10
-    # via
-    #   pytest-trio
-    #   trio
-    #   trio_util (setup.py)
+    # via trio_util (setup.py)
 attrs==20.3.0
     # via
     #   outcome
@@ -23,11 +20,13 @@ coverage==5.5
     # via pytest-cov
 dill==0.3.8
     # via pylint
-exceptiongroup==1.2.0
-    # via pytest
+exceptiongroup==1.2.2
+    # via
+    #   pytest
+    #   trio
 idna==3.1
     # via trio
-importlib-metadata==7.1.0
+importlib-metadata==8.5.0
     # via build
 iniconfig==1.1.1
     # via pytest
@@ -35,7 +34,7 @@ isort==5.8.0
     # via pylint
 mccabe==0.6.1
     # via pylint
-mypy==0.942
+mypy==1.0.1
     # via -r test-requirements.in
 mypy-extensions==0.4.3
     # via mypy
@@ -53,7 +52,7 @@ platformdirs==4.2.0
     # via pylint
 pluggy==1.4.0
     # via pytest
-pylint==3.1.0
+pylint==3.1.1
     # via -r test-requirements.in
 pyparsing==2.4.7
     # via packaging
@@ -61,20 +60,20 @@ pyproject-hooks==1.0.0
     # via
     #   build
     #   pip-tools
-pytest==8.1.1
+pytest==8.1.2
     # via
     #   -r test-requirements.in
     #   pytest-cov
     #   pytest-trio
 pytest-cov==2.11.1
     # via -r test-requirements.in
-pytest-trio==0.7.0
+pytest-trio==0.8.0
     # via -r test-requirements.in
 sniffio==1.2.0
     # via trio
 sortedcontainers==2.3.0
     # via trio
-tomli==2.0.1
+tomli==2.1.0
     # via
     #   build
     #   mypy
@@ -84,7 +83,7 @@ tomli==2.0.1
     #   pytest
 tomlkit==0.12.4
     # via pylint
-trio==0.18.0
+trio==0.22.2
     # via
     #   pytest-trio
     #   trio_util (setup.py)
@@ -95,7 +94,7 @@ typing-extensions==4.1.1
     #   pylint
 wheel==0.36.2
     # via pip-tools
-zipp==3.18.1
+zipp==3.20.2
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:

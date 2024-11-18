@@ -1,8 +1,6 @@
-mock  # for AsyncMock
 mypy >= 0.942
 pip-tools >= 5.5.0
 pylint
 pytest
 pytest-cov
 pytest-trio
-types-mock

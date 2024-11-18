@@ -34,8 +34,6 @@ lazy-object-proxy==1.6.0
     # via astroid
 mccabe==0.6.1
     # via pylint
-mock==4.0.3
-    # via -r test-requirements.in
 mypy==0.942
     # via -r test-requirements.in
 mypy-extensions==0.4.3
@@ -84,8 +82,6 @@ trio==0.12.0
     # via
     #   pytest-trio
     #   trio-util (setup.py)
-types-mock==4.0.1
-    # via -r test-requirements.in
 typing-extensions==4.1.1
     # via
     #   astroid

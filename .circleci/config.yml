@@ -237,6 +237,45 @@ jobs:
             . venv/bin/activate
             make type_check
 
+  "python-3_13":
+    docker:
+      - image: cimg/python:3.13
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.13
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r test-requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "test-requirements.txt" }}-python-3.13
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            make test PYTEST_ARGS="--cov-report=xml"
+      - codecov/upload:
+          file: ./coverage.xml
+      - run:
+          name: run lint
+          command: |
+            . venv/bin/activate
+            make lint
+      - run:
+          name: run type check
+          command: |
+            . venv/bin/activate
+            make type_check
+
 workflows:
   version: 2
   build:
@@ -247,3 +286,4 @@ workflows:
       - "python-3_10"
       - "python-3_11"
       - "python-3_12"
+      - "python-3_13"

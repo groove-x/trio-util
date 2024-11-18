@@ -1,7 +1,11 @@
 from collections import namedtuple
 from contextlib import contextmanager, ExitStack
 from functools import partial
-from typing import ContextManager, Callable, Any, TypeVar, overload
+from typing import Callable, Any, TypeVar, overload
+try:
+    from typing import ContextManager
+except ImportError:
+    from contextlib import AbstractContextManager as ContextManager  # pylint: disable=ungrouped-imports
 
 from ._async_value import AsyncValue
 

@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator  # pylint: disable=no-name-in-module
 
 import trio
 

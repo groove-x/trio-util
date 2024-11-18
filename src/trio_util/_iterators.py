@@ -1,3 +1,5 @@
+# NOTE: test-requirements pylint upgrade is needed for python3.13, but
+#   the upgrade is blocked by python3.8 support.
 from collections.abc import AsyncIterator  # pylint: disable=no-name-in-module
 
 import trio

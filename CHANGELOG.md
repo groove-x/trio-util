@@ -1,5 +1,11 @@
 # Release history
 
+## trio-util 0.8.0 (2024-11-17)
+### Added
+- `periodic()` is now type-annotated
+### Fixed
+- runtime fixes for Python 3.13
+
 ## trio-util 0.7.0 (2021-11-14)
 ### Added
 - `iter_move_on_after()` and `iter_fail_after()` are iterator wrappers

@@ -1,6 +1,10 @@
 # pylint: disable=line-too-long,multiple-statements
 from contextlib import contextmanager
-from typing import TypeVar, Generic, AsyncIterator, Tuple, ContextManager, Callable, overload
+from typing import TypeVar, Generic, AsyncIterator, Tuple, Callable, overload
+try:
+    from typing import ContextManager
+except ImportError:
+    from contextlib import AbstractContextManager as ContextManager  # pylint: disable=ungrouped-imports
 
 import trio
 
